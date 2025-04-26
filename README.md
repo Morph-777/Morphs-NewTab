@@ -1,7 +1,8 @@
 # Morph's New Tab
 This Chrome Extension aims to recreate the Firefox NewTab page for people who switched to a Chromium based browser.
 
-> **⚠️ Early Development Notice:** This project is in early development. Features may change, break, or be incomplete.
+> **⚠️ Early Development Notice:** This project is in early development. Features may change, break, or be incomplete.  
+>💡 More features will be added over time!
 
 ### About
 I built this project for myself because I wasn’t a fan of Brave’s default New Tab page.
@@ -9,6 +10,16 @@ After switching from Firefox, I wanted something that felt more familiar — so 
 I decided to make it open-source and share it on the Web Store so others can enjoy it too.
 <br>
 >[![BadgeWebStore]][WebStore] Not on WebStore yet
+
+## Install Instructions (Unpacked Extension/Without WebStore)
+
+1. Download .zip and extract folder anywhere.
+2. Open **Chrome** or **Brave** or etc.
+3. Go to [`chrome://extensions/`](chrome://extensions/) in the address bar.
+4. Turn on **Developer mode** (toggle in the top right corner).
+5. Click **Load unpacked**.
+6. Select the **folder** where the extension’s files are located.
+7. Done! The extension should now appear and be ready to use. 
 
 ## Key Features
 
