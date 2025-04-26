@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Morph's NewTab",
+  "version": "0.7.0",
+  "description": "Minimalist NewTab page. Supports custom links and reorder by dragging. Looks like the one in Firefox.",
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
+  "permissions": [
+    "activeTab",
+    "storage",
+    "history",
+    "topSites"
+  ]
+}
