@@ -1,5 +1,6 @@
 # Morph's New Tab
 This Chrome Extension aims to recreate the Firefox NewTab page for people who switched to a Chromium based browser.
+![Static Badge](https://img.shields.io/badge/Get%20on-Chrome%20Webstore-green)[WebStore]
 
 **DISCLAIMER: WORK IN PROGRESS — THIS IS NOT THE FINAL VERSION.**
 
@@ -38,3 +39,5 @@ I recently switched to Brave from Firefox, so I tried to recreate that experienc
 This extension respects your privacy — **no tracking, no ads**, just a fast and personal new tab experience.  
 Permissions are only needed for suggestions in the integrated search bar.  
 **No data is ever collected.**
+
+[WebStore]: https://chromewebstore.google.com/
