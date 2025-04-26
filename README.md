@@ -22,10 +22,11 @@ I recently switched to Brave from Firefox, so I tried to recreate that experienc
 
 ## Customization Options
 
+- Choose focused element on NewTab: Use browser address bar or integrated searchbar
 - Choose between 5 search engines (DuckDuckGo, Google, Bing, Yahoo, Ecosia)
 - Adjust grid size (1–8 columns × 1–5 rows)
-- Customize every color element
-- Import/Export your link collections and color settings
+- Customize colors
+- Import/Export your link collections and settings
 - Choose a favicon source (custom file upload not yet supported)
 
 ## Perfect For
