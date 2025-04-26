@@ -60,6 +60,45 @@ const searchEngines = {
   }
 };
 
+const themes = {
+  'default': {
+    bg: "#202124",
+    tile: "#303036",
+    highlight: "#404145",
+    text: "#ffffff",
+    label: "#dddddd",
+    inputGlow: "rgba(170, 170, 255, 1)",
+    match: "rgba(255, 221, 0, 0.85)",
+  },
+  'black': {
+    bg: "#000000",
+    tile: "#121212",
+    highlight: "#1e1e1e",
+    text: "#ffffff",
+    label: "#aaaaaa",
+    inputGlow: "rgba(170, 170, 255, 1)",
+    match: "rgba(255, 221, 0, 0.85)",
+  },
+  'dark-grey': {
+    bg: "#1a1a1a",
+    tile: "#2a2a2a",
+    highlight: "#3a3a3a",
+    text: "#ffffff",
+    label: "#cccccc",
+    inputGlow: "rgba(170, 170, 255, 1)",
+    match: "rgba(255, 221, 0, 0.85)",
+  },
+  'light': {
+    bg: "#f0f0f0",
+    tile: "#f5f5f5",
+    highlight: "#e8e8e8",
+    text: "#333333",
+    label: "#666666",
+    inputGlow: "rgba(100, 100, 255, 1)",
+    match: "rgba(88, 133, 255, 0.85)"
+  }
+};
+
 let TOTAL_TILES = defaults.grid.cols * defaults.grid.rows;
 let dragSourceIndex = null;
 let focusedTileIndex = 0;
@@ -478,6 +517,12 @@ function applyStoredSettings() {
   if (stored) {
     const parsed = JSON.parse(stored);
 
+    // Apply theme first
+    if (parsed.theme) {
+      document.getElementById("themeSelector").value = parsed.theme;
+      applyTheme(parsed.theme);
+    }
+
     // Apply colors
     for (const [key, value] of Object.entries(parsed.colors)) {
       document.documentElement.style.setProperty(`--${key}`, value);
@@ -520,7 +565,8 @@ function saveSettings() {
     },
     focus: {
       target: document.getElementById("focusTarget").value
-    }
+    },
+    theme: document.getElementById("themeSelector").value
   };
 
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -564,6 +610,10 @@ function loadSettingsToForm() {
 
 function resetSettings() {
   localStorage.removeItem(SETTINGS_KEY);
+
+  // Reset theme
+  document.getElementById("themeSelector").value = 'default';
+  applyTheme('default');
 
   // Reset colours
   for (const [key, value] of Object.entries(defaults.colors)) {
@@ -647,6 +697,11 @@ function setupEventListeners() {
         hideSuggestions();
       }
     }, 150); // allow time for click
+  });
+
+  // Theme selector change listener
+  document.getElementById("themeSelector").addEventListener("change", (e) => {
+  applyTheme(e.target.value);
   });
 
   // Settings buttons
@@ -875,7 +930,7 @@ function displaySuggestions(items) {
   container.innerHTML = "";
   const query = searchInput.value.trim().toLowerCase();
 
-  // Deduplicate items (using the improved method from earlier)
+  // Deduplicate items
   const seen = new Map();
   const uniqueItems = [];
 
@@ -1018,5 +1073,17 @@ function applyClockStyles() {
   if (preview) {
     preview.style.fontFamily = font;
     preview.style.fontSize = `${size}rem`;
+  }
+}
+
+function applyTheme(themeName) {
+  const theme = themes[themeName] || themes['default'];
+  
+  for (const [key, value] of Object.entries(theme)) {
+    document.documentElement.style.setProperty(`--${key}`, value);
+    // Update color inputs if they exist
+    if (document.getElementById(key)) {
+      document.getElementById(key).value = value;
+    }
   }
 }
