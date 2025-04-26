@@ -4,15 +4,16 @@ This Chrome Extension aims to recreate the Firefox NewTab page for people who sw
 > **⚠️ Early Development Notice:** This project is in early development. Features may change, break, or be incomplete.
 
 ### About
-This project was made by myself for myself, because I don't like the default New Tab page of Brave Browser.  
-I recently switched to Brave from Firefox, so I tried to recreate that experience. Decided to make it open-source and publish on WebStore for others to enjoy.  
+I built this project for myself because I wasn’t a fan of Brave’s default New Tab page.
+After switching from Firefox, I wanted something that felt more familiar — so I recreated it and added many more customizaton options!
+I decided to make it open-source and share it on the Web Store so others can enjoy it too.
 <br>
 >[![BadgeWebStore]][WebStore] Not on WebStore yet
 
 ## Key Features
 
-- **OPEN SETTINGS BY DOUBLE-CLICKING THE CLOCK!**
-- **RIGHT-CLICK TO EDIT LINKS!**
+**OPEN SETTINGS BY DOUBLE-CLICKING THE CLOCK!**  
+**RIGHT-CLICK TO EDIT LINKS!**
 - Designed to look like the Firefox New Tab page
 - Clean Interface: just clock, search, and favorite links
 - Smart Search with instant suggestions from browsing history and top sites
