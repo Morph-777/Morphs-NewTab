@@ -4,6 +4,8 @@ This Chrome Extension aims to recreate the Firefox NewTab page for people who sw
 > **⚠️ Early Development Notice:** This project is in early development. Features may change, break, or be incomplete.  
 >💡 More features will be added over time!
 
+![image](https://github.com/user-attachments/assets/02845ea5-281c-40d5-998b-2691a559cad9)
+
 ### About
 I built this project for myself because I wasn’t a fan of Brave’s default New Tab page.
 After switching from Firefox, I wanted something that felt more familiar — so I recreated it and added many more customizaton options!
