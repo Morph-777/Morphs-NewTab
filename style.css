@@ -4,6 +4,7 @@
   --bg: #202124;
   --tile: #303036;
   --highlight: #404145;
+  --divider: color-mix(in srgb, var(--highlight) 90%, white 10%);
   --text: #ffffff;
   --label: #dddddd;
   --input-bg: var(--tile);
@@ -18,6 +19,7 @@
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
+  font-size: 0.9rem;
   background: var(--bg);
   color: var(--text);
   display: flex;
@@ -234,21 +236,16 @@ body {
   background: var(--tile);
   color: var(--text);
   border: 1px solid var(--highlight);
-  padding: 20px;
   border-radius: 12px;
   z-index: 1000;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-  width: 500px;
   max-height: 80vh;
-  min-height: 500px;
-  overflow: hidden;
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
-  opacity: 0;
+  min-height: 70vh;
   display: flex;
-  flex-direction: column;
-  font-size: 110%;
+  flex-direction: row;
+  overflow: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  opacity: 0;
 }
 
 .settings-panel[hidden] {
@@ -269,28 +266,47 @@ body {
   margin-bottom: 20px;
 }
 
+.settings-sidebar {
+  width: auto;
+  background: var(--highlight);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.settings-content {
+  flex: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 600px;
+}
+
 /* Tabs */
 .settings-tabs {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  margin-bottom: 20px;
-  /* margin-top: 20px; */
-  border-bottom: 1px solid var(--highlight);
-  border-top: 1px solid var(--highlight);
-  padding: 8px 0 8px 0;
-  justify-content: center;
-  align-items: center;
+  margin: 20px 0;
+  flex: 1;
 }
 
 .tab-button {
-  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
   background: none;
   border: none;
   color: var(--text);
   cursor: pointer;
   opacity: 0.7;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: all 0.2s;
+  text-align: left;
+  width: 100%;
 }
 
 .tab-button:hover {
@@ -299,16 +315,57 @@ body {
 
 .tab-button.active {
   opacity: 1;
-  background: var(--highlight);
+  background: var(--tile);
+}
+
+.tab-icon {
+  font-size: 1.2em;
+}
+
+.tab-label {
+  font-size: 1.2em;
+}
+
+.social-links {
+  margin-top: auto;
+  padding: 24px 0 4px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.social-links a {
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.social-links img {
+  width: 24px;
+  height: 24px;
 }
 
 .tabs-content-container {
   flex: 1;
-  min-height: 300px;
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  margin-bottom: 20px;
-  position: relative;
+}
+
+.tab-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20px;
+  overflow-y: auto;
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
 }
 
 .tabs-content-container .tab-content {
@@ -317,14 +374,32 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 5px;
   overflow-y: auto;
+  padding-right: 10px;
   display: none;
 }
 
 .tabs-content-container .tab-content.active {
   display: block;
-  position: relative;
+}
+
+/* Custom scrollbar */
+.tab-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tab-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.tab-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.tab-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* Settings Groups */
@@ -340,13 +415,18 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  padding: 2px;
 }
 
 .settings-group label > span {
   flex: 1;
   text-align: left;
   padding-right: 10px;
+}
+
+.settings-group label:not(:first-child) {
+  margin-top: 5px;
+  border-top: 1px solid var(--divider);
+  padding-top: 5px;
 }
 
 /* Number Input Styling */
@@ -382,8 +462,11 @@ body {
 /* Regular Buttons */
 .settings-buttons {
   display: flex;
-  justify-content: space-between;
   gap: 10px;
+  padding: 20px;
+  background: var(--tile);
+  border-top: 1px solid var(--highlight);
+  margin-top: auto; /* Push to bottom */
 }
 
 .settings-buttons button,
@@ -396,6 +479,13 @@ body {
   cursor: pointer;
   transition: background 0.2s;
   width: -webkit-fill-available;
+  font-size: 0.9rem;
+}
+
+.settings-buttons button {
+  flex: 1;
+  padding: 10px;
+  margin: 0;
 }
 
 .settings-buttons button:hover,
@@ -502,7 +592,6 @@ body {
   background: var(--warn) !important;
 }
 
-/* Add this to style.css */
 #clockPreview {
   background-color: var(--highlight);
   padding: 10px;
@@ -527,4 +616,29 @@ input[type="range"]::-webkit-slider-thumb {
   background: var(--input-glow);
   border-radius: 50%;
   cursor: pointer;
+}
+
+/* Link Edit Modal */
+#linkEditModal {
+  width: 400px; /* Fixed width */
+  min-height: auto; /* Auto height */
+  padding: 20px; /* Consistent padding */
+  display: flex;
+  flex-direction: column;
+}
+
+#linkEditModal .modal-content {
+  display: block;
+  gap: 0;
+}
+
+/* Keep original button styling for modal */
+#linkEditModal .settings-buttons {
+  margin-top: 20px;
+  display: flex;
+  padding: 20px 0 0 0;
+}
+
+#linkEditModal .settings-buttons button {
+  flex: 1;
 }

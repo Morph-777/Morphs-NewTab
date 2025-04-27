@@ -721,11 +721,17 @@ function setupEventListeners() {
   document.getElementById("removeLink").addEventListener("click", removeCurrentLink);
 
   // Tab switching
-  document.querySelectorAll(".tab-button").forEach((button) => {
+  document.querySelectorAll(".settings-sidebar .tab-button").forEach((button) => {
     button.addEventListener("click", () => {
-      document.querySelectorAll(".tab-button, .tab-content").forEach((el) => {
-        el.classList.remove("active");
+      // Remove active class from all tabs and buttons
+      document.querySelectorAll(".settings-sidebar .tab-button").forEach((btn) => {
+        btn.classList.remove("active");
       });
+      document.querySelectorAll(".settings-content .tab-content").forEach((tab) => {
+        tab.classList.remove("active");
+      });
+      
+      // Add active class to clicked button and corresponding tab
       button.classList.add("active");
       const tabId = button.getAttribute("data-tab");
       document.getElementById(`${tabId}-tab`).classList.add("active");
