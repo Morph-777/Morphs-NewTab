@@ -595,9 +595,6 @@ function loadSettingsToForm() {
 
   colorVars.forEach((key) => {
     let value = styles.getPropertyValue(`--${key}`).trim();
-    if (!value || value === "#000000") {
-      value = defaults.colors[key];
-    }
     document.getElementById(key).value = value;
   });
 
