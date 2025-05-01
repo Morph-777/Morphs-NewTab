@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Morph's NewTab",
-  "version": "0.7.0",
-  "description": "Minimalist NewTab page. Supports custom links and reorder by dragging. Looks like the one in Firefox.",
+  "version": "0.8.0",
+  "description": "Clean and minimalist NewTab page. Supports custom colours and reorder by dragging. Looks like the one in Firefox.",
   "chrome_url_overrides": {
     "newtab": "index.html"
   },
@@ -11,5 +11,22 @@
     "storage",
     "history",
     "topSites"
-  ]
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "newtab@morph777",
+      "strict_min_version": "109.0"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "128": "icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png"
+    }
+  }
 }

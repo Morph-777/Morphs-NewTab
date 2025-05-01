@@ -1,0 +1,212 @@
+[
+  {
+    "label": "System Default",
+    "css": "system-ui, sans-serif",
+    "importUrl": null
+  },
+  {
+    "label": "Roboto",
+    "css": "'Roboto', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+  },
+  {
+    "label": "Open Sans",
+    "css": "'Open Sans', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap"
+  },
+  {
+    "label": "Lato",
+    "css": "'Lato', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap"
+  },
+  {
+    "label": "Montserrat",
+    "css": "'Montserrat', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap"
+  },
+  {
+    "label": "Poppins",
+    "css": "'Poppins', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap"
+  },
+  {
+    "label": "Oswald",
+    "css": "'Oswald', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&display=swap"
+  },
+  {
+    "label": "Raleway",
+    "css": "'Raleway', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Raleway:wght@400;700&display=swap"
+  },
+  {
+    "label": "Playfair Display",
+    "css": "'Playfair Display', serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap"
+  },
+  {
+    "label": "Merriweather",
+    "css": "'Merriweather', serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap"
+  },
+  {
+    "label": "Ubuntu",
+    "css": "'Ubuntu', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;700&display=swap"
+  },
+  {
+    "label": "Nunito",
+    "css": "'Nunito', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap"
+  },
+  {
+    "label": "Titillium Web",
+    "css": "'Titillium Web', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Titillium+Web&wght@400;700&display=swap"
+  },
+  {
+    "label": "PT Sans",
+    "css": "'PT Sans', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap"
+  },
+  {
+    "label": "Source Sans Pro",
+    "css": "'Source Sans Pro', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700&display=swap"
+  },
+  {
+    "label": "Noto Sans",
+    "css": "'Noto Sans', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&display=swap"
+  },
+  {
+    "label": "Arimo",
+    "css": "'Arimo', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Arimo:wght@400;700&display=swap"
+  },
+  {
+    "label": "PT Serif",
+    "css": "'PT Serif', serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&display=swap"
+  },
+  {
+    "label": "Roboto Slab",
+    "css": "'Roboto Slab', serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&display=swap"
+  },
+  {
+    "label": "Dancing Script",
+    "css": "'Dancing Script', cursive",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap"
+  },
+  {
+    "label": "Pacifico",
+    "css": "'Pacifico', cursive",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Pacifico&display=swap"
+  },
+  {
+    "label": "Amatic SC",
+    "css": "'Amatic SC', cursive",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400;700&display=swap"
+  },
+  {
+    "label": "Permanent Marker",
+    "css": "'Permanent Marker', cursive",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap"
+  },
+  {
+    "label": "Shadows Into Light",
+    "css": "'Shadows Into Light', cursive",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Shadows+Into+Light&display=swap"
+  },
+  {
+    "label": "Caveat",
+    "css": "'Caveat', cursive",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap"
+  },
+  {
+    "label": "Indie Flower",
+    "css": "'Indie Flower', cursive",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap"
+  },
+  {
+    "label": "Gloria Hallelujah",
+    "css": "'Gloria Hallelujah', cursive",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&display=swap"
+  },
+  {
+    "label": "Anton",
+    "css": "'Anton', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Anton&display=swap"
+  },
+  {
+    "label": "Bebas Neue",
+    "css": "'Bebas Neue', cursive",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap"
+  },
+  {
+    "label": "Josefin Sans",
+    "css": "'Josefin Sans', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@400;700&display=swap"
+  },
+  {
+    "label": "Fira Sans",
+    "css": "'Fira Sans', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;700&display=swap"
+  },
+  {
+    "label": "Work Sans",
+    "css": "'Work Sans', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;700&display=swap"
+  },
+  {
+    "label": "Exo 2",
+    "css": "'Exo 2', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Exo+2:wght@400;700&display=swap"
+  },
+  {
+    "label": "Comfortaa",
+    "css": "'Comfortaa', cursive",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap"
+  },
+  {
+    "label": "Barlow",
+    "css": "'Barlow', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Barlow:wght@400;700&display=swap"
+  },
+  {
+    "label": "Karla",
+    "css": "'Karla', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Karla:wght@400;700&display=swap"
+  },
+  {
+    "label": "Rubik",
+    "css": "'Rubik', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap"
+  },
+  {
+    "label": "Varela Round",
+    "css": "'Varela Round', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Varela+Round&display=swap"
+  },
+  {
+    "label": "Muli",
+    "css": "'Muli', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Muli:wght@400;700&display=swap"
+  },
+  {
+    "label": "Oxygen",
+    "css": "'Oxygen', sans-serif",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Oxygen:wght@400;700&display=swap"
+  },
+  {
+    "label": "Inconsolata",
+    "css": "'Inconsolata', monospace",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;700&display=swap"
+  },
+  {
+    "label": "Space Mono",
+    "css": "'Space Mono', monospace",
+    "importUrl": "https://fonts.googleapis.com/css2?family=Space+Mono&display=swap"
+  }
+]

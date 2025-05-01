@@ -13,14 +13,15 @@ const settingsPanel = document.getElementById("settings");
 const linkEditModal = document.getElementById("linkEditModal");
 const defaults = {
   focus: {
-    target: "searchbar"
+    target: "addressbar"
   },
   colors: {
     bg: "#202124",
     tile: "#303036",
     highlight: "#404145",
     text: "#ffffff",
-    label: "#dddddd"
+    label: "#dddddd",
+    clockColor: "#ffffff"
   },
   clock: {
     font: "system-ui",
@@ -70,6 +71,15 @@ const themes = {
     inputGlow: "rgba(170, 170, 255, 1)",
     match: "rgba(255, 221, 0, 0.85)",
   },
+  'fox': {
+    bg: "#2b2a33",
+    tile: "#42414d",
+    highlight: "#55555C",
+    text: "#FBFBFE",
+    label: "#FBFBFE",
+    inputGlow: "rgba(170, 170, 255, 1)",
+    match: "rgba(255, 221, 0, 0.85)",
+  },
   'black': {
     bg: "#000000",
     tile: "#121212",
@@ -111,7 +121,8 @@ let lastSuggestionQuery = "";
 let suggestionTimeout = null;
 
 // Initialize
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadFonts();
 	setFocus();
   applyStoredSettings();
   applyClockStyles();
@@ -131,6 +142,40 @@ function setFocus() {
 		return; // important! exit early so nothing else runs yet
 	}
 }
+
+async function loadFonts() {
+  const fonts = await fetch(chrome.runtime.getURL("fonts.json")).then(r => r.json());
+  const sel = document.getElementById("clockFont");
+  sel.innerHTML = "";
+
+  fonts.forEach(f => {
+    if (f.importUrl) {
+      // preload the stylesheet as a high-priority resource…
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as  = "style";
+      link.href = f.importUrl;
+      // …then once it's fetched, convert to a stylesheet
+      link.onload = () => { link.rel = "stylesheet"; };
+      document.head.appendChild(link);
+    }
+    const opt = document.createElement("option");
+    opt.value = f.css;
+    opt.textContent   = f.label;
+    opt.style.fontFamily = f.css;
+    sel.appendChild(opt);
+  });
+
+  // once all fonts are parsed and loaded:
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      document.documentElement.classList.add("fonts-loaded");
+    });
+  } else {
+    document.documentElement.classList.add("fonts-loaded");
+  }
+}
+
 
 function updateClock() {
   const now = new Date();
@@ -243,13 +288,13 @@ async function getFavicon(link, providerOverride = null) {
 
     switch (provider) {
       case "google":
-        return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+        return `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`;
       case "duckduckgo":
         return `https://icons.duckduckgo.com/ip3/${hostname}.ico`;
       case "direct":
         return `${url.protocol}//${hostname}/favicon.ico`;
       default:
-        return `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+        return `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`;
     }
   } catch (e) {
     return "Error";
@@ -525,8 +570,11 @@ function applyStoredSettings() {
 
     // Apply colors
     for (const [key, value] of Object.entries(parsed.colors)) {
+      // Write --clockColor, --bg, etc. directly
       document.documentElement.style.setProperty(`--${key}`, value);
-      document.getElementById(key).value = value;
+      // IDs in the DOM are now exactly "clockColor", "bg", "tile", …
+      const inp = document.getElementById(key);
+      if (inp) inp.value = value;
     }
 
     // Apply grid
@@ -553,7 +601,8 @@ function saveSettings() {
       tile: document.getElementById("tile").value,
       highlight: document.getElementById("highlight").value,
       text: document.getElementById("text").value,
-      label: document.getElementById("label").value
+      label: document.getElementById("label").value,
+      clockColor: document.getElementById("clockColor").value
     },
     grid: {
       cols: parseInt(document.getElementById("cols").value),
@@ -606,32 +655,38 @@ function loadSettingsToForm() {
 }
 
 function resetSettings() {
-  localStorage.removeItem(SETTINGS_KEY);
+  if (confirm("Are you sure you want to reset Appearance?")) {
+    localStorage.removeItem(SETTINGS_KEY);
 
-  // Reset theme
-  document.getElementById("themeSelector").value = 'default';
-  applyTheme('default');
+    // Reset theme
+    document.getElementById("themeSelector").value = 'default';
+    applyTheme('default');
 
-  // Reset colours
-  for (const [key, value] of Object.entries(defaults.colors)) {
-    document.documentElement.style.setProperty(`--${key}`, value);
-    document.getElementById(key).value = value;
+    // Reset colours
+    for (const [key, value] of Object.entries(defaults.colors)) {
+      document.documentElement.style.setProperty(`--${key}`, value);
+      document.getElementById(key).value = value;
+    }
+
+    // Reset grid
+    document.getElementById("cols").value = defaults.grid.cols;
+    document.getElementById("rows").value = defaults.grid.rows;
+    applyGridLayout(defaults.grid.cols, defaults.grid.rows);
+
+    //Reset clock
+    document.getElementById("clockFont").value = defaults.clock.font;
+    document.getElementById("clockSize").value = defaults.clock.size;
+    document.getElementById("clockSizeValue").textContent = defaults.clock.size;
+    applyClockStyles();
+
+    // Reset focus target
+    document.getElementById("focusTarget").value = defaults.focus.target;
+
+    // Reset font dropdown
+    const fontSel = document.getElementById("clockFont");
+    if (fontSel) fontSel.selectedIndex = 0;  // pick the very first option (“System Default”)
+      applyClockStyles();
   }
-
-  // Reset grid
-  document.getElementById("cols").value = defaults.grid.cols;
-  document.getElementById("rows").value = defaults.grid.rows;
-  applyGridLayout(defaults.grid.cols, defaults.grid.rows);
-
-  //Reset clock
-  document.getElementById("clockFont").value = defaults.clock.font;
-  document.getElementById("clockSize").value = defaults.clock.size;
-  document.getElementById("clockSizeValue").textContent = defaults.clock.size;
-  applyClockStyles();
-
-  // Reset focus target
-  document.getElementById("focusTarget").value = defaults.focus.target;
-
 }
 
 function resetAllSettings() {
@@ -645,8 +700,8 @@ function resetAllSettings() {
 }
 
 function applyGridLayout(cols, rows) {
-  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-  grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+  grid.style.gridTemplateColumns = `repeat(${cols}, 96px)`;
+  grid.style.gridTemplateRows    = `repeat(${rows}, 127.2px)`;
   TOTAL_TILES = cols * rows;
 
   // Resize link array
@@ -1090,3 +1145,5 @@ function applyTheme(themeName) {
     }
   }
 }
+
+

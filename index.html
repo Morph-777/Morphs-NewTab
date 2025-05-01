@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <title>New Tab</title>
+    <!-- Preconnect to speed up all subsequent font requests -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="style.css" />
     <link rel="icon" href="favicon.png" type="image/png" />
   </head>
@@ -33,9 +36,13 @@
       <div class="settings-sidebar">
         <h2>Settings</h2>
         <div class="settings-tabs">
-          <button class="tab-button active" data-tab="appearance">
+          <button class="tab-button active" data-tab="clock">
+            <span class="tab-icon">🕒</span>
+            <span class="tab-label">Clock</span>
+          </button>
+          <button class="tab-button" data-tab="colors">
             <span class="tab-icon">🎨</span>
-            <span class="tab-label">Appearance</span>
+            <span class="tab-label">Colors</span>
           </button>
           <button class="tab-button" data-tab="links">
             <span class="tab-icon">🔗</span>
@@ -58,32 +65,34 @@
 
       <div class="settings-content">
         <div class="tabs-content-container">
-          <!-- Appearance Tab -->
-          <div id="appearance-tab" class="tab-content active">
+
+          <!-- Clock Tab -->
+
+          <div id="clock-tab" class="tab-content active">
             <div class="settings-group">
-              <label>
-                <span>Clock Font:</span>
-                <select id="clockFont">
-                  <option value="system-ui">System Default</option>
-                  <option value="'Inter', sans-serif">Inter</option>
-                  <option value="'Roboto', sans-serif">Roboto</option>
-                  <option value="'Open Sans', sans-serif">Open Sans</option>
-                  <option value="'Montserrat', sans-serif">Montserrat</option>
-                  <option value="'Poppins', sans-serif">Poppins</option>
-                </select>
+              <label><span>Clock Font:</span>
+                <select id="clockFont"></select>
               </label>
-              <label>
-                <span>Clock Size (rem):</span>
-                <input type="range" id="clockSize" min="2" max="10" step="0.5" value="5" />
+              <label><span>Clock Size (rem):</span>
+                <input type="range" id="clockSize" min="2" max="10" step="0.5" value="5"/>
                 <span id="clockSizeValue">5</span>
               </label>
-              <div id="clockPreview" style="font-size: 5rem; margin-top: 20px">12:34</div>
+              <label><span>Clock Color:</span>
+                <input type="color" id="clockColor" />
+              </label>
+              <div id="clockPreview">12:34</div>
             </div>
+          </div>
+
+          <!-- Colors Tab -->
+
+          <div id="colors-tab" class="tab-content">
             <div class="settings-group">
               <label>
                 <span>Theme:</span>
                 <select id="themeSelector">
                   <option value="default">Default Dark</option>
+                  <option value="fox">Fox of Fire</option>
                   <option value="black">Pure Black</option>
                   <option value="dark-grey">Dark Grey</option>
                   <option value="light">Light Mode</option>
@@ -91,66 +100,51 @@
               </label>
             </div>
             <div class="settings-group">
-              <label>
-                <span>Background Color:</span>
-                <input type="color" id="bg" />
-              </label>
-              <label>
-                <span>Tile Color:</span>
-                <input type="color" id="tile" />
-              </label>
-              <label>
-                <span>Highlight Color:</span>
-                <input type="color" id="highlight" />
-              </label>
-              <label>
-                <span>Text Color:</span>
-                <input type="color" id="text" />
-              </label>
-              <label>
-                <span>Label Color:</span>
-                <input type="color" id="label" />
-              </label>
+              <label><span>Background:</span><input type="color" id="bg"/></label>
+              <label><span>Tile:</span><input type="color" id="tile"/></label>
+              <label><span>Highlight:</span><input type="color" id="highlight"/></label>
+              <label><span>Text:</span><input type="color" id="text"/></label>
+              <label><span>Label:</span><input type="color" id="label"/></label>
             </div>
-            <div class="settings-group">
+            <div class="settings-group settings-group-buttons">
               <button id="exportColors">Export Color Settings</button>
               <button id="importColors">Import Color Settings</button>
               <input type="file" id="importColorsFile" accept=".json" hidden />
             </div>
-            <div class="settings-group">
-              <p style="font-weight: bold">Export your links before reducing rows or columns!</p>
-              <label
-                >Columns:
-                <div class="number-input">
-                  <button class="number-btn minus">-</button>
-                  <input type="number" id="cols" min="1" max="8" value="8" />
-                  <button class="number-btn plus">+</button>
-                </div>
-              </label>
-              <label
-                >Rows:
-                <div class="number-input">
-                  <button class="number-btn minus">-</button>
-                  <input type="number" id="rows" min="1" max="5" value="2" />
-                  <button class="number-btn plus">+</button>
-                </div>
-              </label>
-            </div>
           </div>
 
           <!-- Links Tab -->
-          <div id="links-tab" class="tab-content">
-            <div class="settings-group">
-              <p>Right-click any icon to edit links</p>
-              <p>Drag and drop to rearrange</p>
-              <p>Open links in new tab with middle-mouse-click</p>
-            </div>
-            <div class="settings-group">
-              <button id="exportLinks">Export Links</button>
-              <button id="importLinks">Import Links</button>
-              <input type="file" id="importLinksFile" accept=".json" hidden />
-            </div>
-          </div>
+<div id="links-tab" class="tab-content">
+  <div class="settings-group">
+    <p>Right-click any icon to edit links</p>
+    <p>Drag and drop to rearrange</p>
+    <p>Open links in new tab with middle-mouse-click</p>
+  </div>
+  <div class="settings-group settings-group-buttons">
+    <button id="exportLinks">Export Links</button>
+    <button id="importLinks">Import Links</button>
+    <input type="file" id="importLinksFile" accept=".json" hidden />
+  </div>
+  <div class="settings-group">
+    <div style="font-weight:bold">Export your links before changing columns/rows!</div>
+    <div class="input-row">
+      <label for="cols">Columns:</label>
+      <div class="number-input">
+        <button class="number-btn minus">-</button>
+        <input type="number" id="cols" min="1" max="8" value="8"/>
+        <button class="number-btn plus">+</button>
+      </div>
+    </div>
+    <div class="input-row">
+      <label for="rows">Rows:</label>
+      <div class="number-input">
+        <button class="number-btn minus">-</button>
+        <input type="number" id="rows" min="1" max="5" value="2"/>
+        <button class="number-btn plus">+</button>
+      </div>
+    </div>
+  </div>
+</div>
 
           <!-- Advanced Tab -->
           <div id="advanced-tab" class="tab-content">
@@ -172,8 +166,8 @@
                 </select>
               </label>
             </div>
-            <div class="settings-group">
-              <button id="resetAll">Reset All Settings</button>
+            <div class="settings-group settings-group-buttons">
+              <button id="resetAll">Reset All Settings And Links</button>
             </div>
           </div>
         </div>
