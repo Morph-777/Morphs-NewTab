@@ -25,7 +25,13 @@ const defaults = {
   },
   clock: {
     font: "system-ui",
-    size: 5
+    size: 5,
+    margin: 40
+  },
+  interface: {
+    showClock: true,     // <— new
+    showSearch: true,
+    showLinks: true
   },
   grid: {
     cols: 8,
@@ -586,6 +592,22 @@ function applyStoredSettings() {
       document.getElementById("clockSize").value = parsed.clock.size;
       document.getElementById("clockSizeValue").textContent = parsed.clock.size;
     }
+
+    // 1) Margin
+if (parsed.clock?.margin != null) {
+  document.getElementById("clockMargin").value = parsed.clock.margin;
+  document.getElementById("clockMarginValue").textContent = parsed.clock.margin;
+  document.getElementById("clock").style.marginBottom = parsed.clock.margin + "px";
+}
+
+// 2) Interface toggles
+const i = parsed.interface || defaults.interface;
+document.getElementById("toggleClock").checked  = i.showClock;
+document.getElementById("toggleSearch").checked = i.showSearch;
+document.getElementById("toggleLinks").checked  = i.showLinks;
+applyInterface(i);
+
+
     // Apply Focus target
     if (parsed.focus) {
       document.getElementById("focusTarget").value = parsed.focus.target;
@@ -610,7 +632,13 @@ function saveSettings() {
     },
     clock: {
       font: document.getElementById("clockFont").value,
-      size: parseFloat(document.getElementById("clockSize").value)
+      size: parseFloat(document.getElementById("clockSize").value),
+      margin: parseInt(document.getElementById("clockMargin").value)
+    },
+    interface: {
+      showClock:  document.getElementById("toggleClock").checked,
+      showSearch: document.getElementById("toggleSearch").checked,
+      showLinks:  document.getElementById("toggleLinks").checked
     },
     focus: {
       target: document.getElementById("focusTarget").value
@@ -630,6 +658,9 @@ function saveSettings() {
 
   // Apply clock styles
   applyClockStyles();
+
+  // apply interface immediately
+  applyInterface(settings.interface);
 
   // Set Focus
   setFocus();
@@ -686,6 +717,18 @@ function resetSettings() {
     const fontSel = document.getElementById("clockFont");
     if (fontSel) fontSel.selectedIndex = 0;  // pick the very first option (“System Default”)
       applyClockStyles();
+
+    // reset margin
+document.getElementById("clockMargin").value = defaults.clock.margin;
+document.getElementById("clockMarginValue").textContent = defaults.clock.margin;
+document.getElementById("clock").style.marginBottom = defaults.clock.margin + "px";
+
+// reset interface toggles
+document.getElementById("toggleClock").checked  = defaults.interface.showClock;
+document.getElementById("toggleSearch").checked = defaults.interface.showSearch;
+document.getElementById("toggleLinks").checked  = defaults.interface.showLinks;
+applyInterface(defaults.interface);
+
   }
 }
 
@@ -716,6 +759,21 @@ function applyGridLayout(cols, rows) {
   renderGrid();
 }
 
+function applyInterface({ showClock, showSearch, showLinks }) {
+  document.getElementById("clock").style.display       = showClock  ? "" : "none";
+  document.querySelector(".search").style.display      = showSearch ? "" : "none";
+  document.getElementById("linkGrid").style.display    = showLinks  ? "" : "none";
+}
+
+// Fallback: if clock is hidden, let dblclick on body open settings
+document.body.addEventListener("dblclick", (e) => {
+  if (!document.getElementById("clock").offsetParent && settingsPanel.hidden) {
+    loadSettingsToForm();
+    settingsPanel.hidden = false;
+  }
+});
+
+
 // Event Handlers
 function setupEventListeners() {
   // Clock double-click for settings
@@ -737,6 +795,24 @@ function setupEventListeners() {
     document.getElementById("clockSizeValue").textContent = size;
     document.getElementById("clockPreview").style.fontSize = `${size}rem`;
   });
+
+  // clock margin slider
+document.getElementById("clockMargin").addEventListener("input", (e) => {
+  const v = e.target.value;
+  document.getElementById("clockMarginValue").textContent = v;
+  document.getElementById("clock").style.marginBottom = v + "px";
+});
+
+["toggleClock","toggleSearch","toggleLinks"].forEach(id => {
+  document.getElementById(id).addEventListener("change", () => {
+    applyInterface({
+      showClock:  document.getElementById("toggleClock").checked,
+      showSearch: document.getElementById("toggleSearch").checked,
+      showLinks:  document.getElementById("toggleLinks").checked
+    });
+  });
+});
+
 
   // Search input events for suggestions
   searchInput.addEventListener("input", handleSearchInput);
@@ -920,68 +996,78 @@ function showSuggestions() {
 }
 
 function hideSuggestions() {
+  lastSuggestionQuery = "";
   document.getElementById("searchSuggestions").classList.remove("visible");
 }
+
 
 async function fetchSuggestions(query) {
   if (query === lastSuggestionQuery) return;
   lastSuggestionQuery = query;
 
   try {
-    // Get both history and top sites
+    const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
     const [historyItems, topSites] = await Promise.all([
-      chrome.history? chrome.history.search({
+      chrome.history
+        ? chrome.history.search({
             text: query,
-            maxResults: 5
+            startTime: twoWeeksAgo,
+            maxResults: 10
           })
         : Promise.resolve([]),
-      chrome.topSites ? chrome.topSites.get() : Promise.resolve([])
+      chrome.topSites
+        ? chrome.topSites.get()
+        : Promise.resolve([])
     ]);
 
-    // Combine results - show top sites only for empty/short queries
-    let allItems = [...topSites, ...historyItems];
+    const allItems = query
+      ? [...historyItems, ...topSites]
+      : topSites;
 
-    // Filter out invalid URLs and deduplicate
-    const validItems = allItems.filter((item) => {
+    // filter out entries without URLs
+    const validItems = allItems.filter(item => item.url);
+
+    // dedupe by URL, favoring history items first
+    const seen = new Set();
+    const uniqueItems = [];
+    for (const item of validItems) {
       try {
-        new URL(item.url);
-        return true;
+        const urlObj = new URL(item.url);
+        const urlKey = urlObj.hostname + urlObj.pathname;
+        if (!seen.has(urlKey)) {
+          seen.add(urlKey);
+          uniqueItems.push(item);
+        }
       } catch {
-        return false;
+        // skip invalid URLs
       }
-    });
+    }
 
-    const uniqueItems = validItems.filter((item, index, self) => index === self.findIndex((t) => t.url === item.url));
-
-    // Sort by relevance - exact matches first, then partial matches
+    // sort by relevance
     uniqueItems.sort((a, b) => {
+      const qLower = query.toLowerCase();
       const aTitle = (a.title || "").toLowerCase();
       const bTitle = (b.title || "").toLowerCase();
-      const q = query.toLowerCase();
 
-      // Exact match at start of title
-      if (aTitle.startsWith(q) && !bTitle.startsWith(q)) return -1;
-      if (!aTitle.startsWith(q) && bTitle.startsWith(q)) return 1;
-
-      // Exact match anywhere in title
-      if (aTitle.includes(q) && !bTitle.includes(q)) return -1;
-      if (!aTitle.includes(q) && bTitle.includes(q)) return 1;
-
-      // Otherwise sort by most visited (for top sites) or most recent (for history)
+      if (aTitle.startsWith(qLower) && !bTitle.startsWith(qLower)) return -1;
+      if (!aTitle.startsWith(qLower) && bTitle.startsWith(qLower)) return 1;
+      if (aTitle.includes(qLower) && !bTitle.includes(qLower)) return -1;
+      if (!aTitle.includes(qLower) && bTitle.includes(qLower)) return 1;
       return 0;
     });
 
-    displaySuggestions(uniqueItems.slice(0, 6)); // Show top 6 results
+    displaySuggestions(uniqueItems.slice(0, 6));
   } catch (error) {
     console.error("Error fetching suggestions:", error);
-    // Fallback to just top sites if there's an error
+    // fallback to topSites only
     if (chrome.topSites) {
-      chrome.topSites.get().then((sites) => {
+      chrome.topSites.get().then(sites => {
         displaySuggestions(sites.slice(0, 6));
       });
     }
   }
 }
+
 
 function displaySuggestions(items) {
   const container = document.getElementById("searchSuggestions");
@@ -1018,7 +1104,7 @@ function displaySuggestions(items) {
 
     const icon = document.createElement("img");
     icon.className = "suggestion-icon";
-    icon.src = `https://www.google.com/s2/favicons?domain=${new URL(item.url).hostname}`;
+    icon.src = `https://icons.duckduckgo.com/ip3/${new URL(item.url).hostname}.ico`;
 
     // Highlight matching text in the title
     const title = document.createElement("span");

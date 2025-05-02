@@ -36,13 +36,17 @@
       <div class="settings-sidebar">
         <h2>Settings</h2>
         <div class="settings-tabs">
-          <button class="tab-button active" data-tab="clock">
-            <span class="tab-icon">🕒</span>
-            <span class="tab-label">Clock</span>
-          </button>
           <button class="tab-button" data-tab="colors">
             <span class="tab-icon">🎨</span>
             <span class="tab-label">Colors</span>
+          </button>
+          <button class="tab-button" data-tab="interface">
+            <span class="tab-icon">🛠️</span>
+            <span class="tab-label">Interface</span>
+          </button>          
+          <button class="tab-button active" data-tab="clock">
+            <span class="tab-icon">🕒</span>
+            <span class="tab-label">Clock</span>
           </button>
           <button class="tab-button" data-tab="links">
             <span class="tab-icon">🔗</span>
@@ -66,6 +70,15 @@
       <div class="settings-content">
         <div class="tabs-content-container">
 
+          <!-- Interface Tab -->
+<div id="interface-tab" class="tab-content">
+  <div class="settings-group">
+    <label> Show Clock<input type="checkbox" id="toggleClock" /></label>
+    <label> Show Search Bar<input type="checkbox" id="toggleSearch" /></label>
+    <label> Show Link Grid<input type="checkbox" id="toggleLinks" /></label>
+  </div>
+</div>
+
           <!-- Clock Tab -->
 
           <div id="clock-tab" class="tab-content active">
@@ -73,6 +86,11 @@
               <label><span>Clock Font:</span>
                 <select id="clockFont"></select>
               </label>
+              <label>
+                <span>Clock Spacing (px):</span>
+                <input type="range" id="clockMargin" min="0" max="400" step="1" value="40" />
+                <span id="clockMarginValue">40</span>
+              </label>              
               <label><span>Clock Size (rem):</span>
                 <input type="range" id="clockSize" min="2" max="10" step="0.5" value="5"/>
                 <span id="clockSizeValue">5</span>

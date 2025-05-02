@@ -283,7 +283,7 @@ body {
   z-index: 1000;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
   max-height: 80vh;
-  min-height: 70vh;
+  min-height: 40vh;
   display: flex;
   flex-direction: row;
   overflow: hidden;
@@ -484,6 +484,11 @@ body {
   padding-top: 5px;
 }
 
+/* ensure the label/span style carries to your toggles */
+.settings-group label input[type="checkbox"] {
+  margin-right: 8px;
+}
+
 /* Number Input Styling */
 .number-input {
   display: flex;
@@ -628,7 +633,6 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   color: var(--text);
-  margin-top: 4px;
 }
 
 #linkEditModal .settings-buttons {
