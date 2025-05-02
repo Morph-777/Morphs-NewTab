@@ -18,10 +18,15 @@
   --radius: 4px;
 }
 
+html {
+  background: var(--bg);
+}
+
 /* ——— Fade-in everything ——— */
 body {
+  background: var(--bg);
   opacity: 0;                   /* start hidden */
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
 }
 
 html.fonts-loaded body {
@@ -206,10 +211,10 @@ body {
   background-color: var(--tile);
   border-radius: 8px;
   display: flex;
-  align-items: center;
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  align-items: center;
 }
 
 .link-tile img {
@@ -222,9 +227,8 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   width: 96px;
-  height: 127.2px;
+  height: 120px;
   margin-block-end: 16px;
   border-radius: 8px;
 }
@@ -242,19 +246,13 @@ body {
 }
 
 .link-label {
-  /* Preserve a 2-line tall box so grid spacing never shifts */
-  height: calc(1.2em * 2);
-  line-height: 1.2;
   font-size: 0.8rem;
   width: 100%;
   margin-top: 6px;
   color: var(--label);
   text-align: center;
-
   box-sizing: border-box;
   padding: 0 4px;
-
-  /* Default: one line, ellipsis */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
