@@ -1,8 +1,7 @@
 # Morph's New Tab
-This Chrome Extension aims to recreate the Firefox NewTab page for people who switched to a Chromium based browser.
+This Browser Extension aims to recreate the Firefox NewTab page for people who switched to a Chromium based browser.
 
 > **⚠️ Early Development Notice:** This project is in early development. Features may change, break, or be incomplete.  
->💡 More features will be added over time!
 
 ![image](https://github.com/user-attachments/assets/02845ea5-281c-40d5-998b-2691a559cad9)
 
@@ -36,7 +35,9 @@ I decided to make it open-source and share it on the Web Store so others can enj
 
 ## Customization Options
 
+- 5 preset Themes
 - Choose focused element on NewTab: Use browser address bar or integrated searchbar
+- Select from 40 different fonts for your clock
 - Choose between 5 search engines (DuckDuckGo, Google, Bing, Yahoo, Ecosia)
 - Adjust grid size (1–8 columns × 1–5 rows)
 - Customize colors
@@ -52,9 +53,9 @@ I decided to make it open-source and share it on the Web Store so others can enj
 
 ## Privacy
 
-This extension respects your privacy — **no tracking, no ads**, just a fast and personal new tab experience.  
-Permissions are only needed for suggestions in the integrated search bar.  
-**No data is ever collected.**
+- Favicons loaded from DuckDuckGo/Google depending on setting (DuckDuckGo is default)
+- Fonts are retrieved from Google Fonts
+- The extension does not collect any bookmark/history/or any other data.
 
 [BadgeWebStore]: https://img.shields.io/badge/Get%20on-Chrome%20WebStore-239F42
 [WebStore]: https://chromewebstore.google.com/
