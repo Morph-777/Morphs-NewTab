@@ -1,28 +1,30 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>New Tab</title>
-    <!-- Preconnect to speed up all subsequent font requests -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="style.css" />
-    <link rel="icon" href="favicon.png" type="image/png" />
-  </head>
-  <body>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>New Tab</title>
+  <!-- Preconnect to speed up all subsequent font requests -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+</head>
+
+
+
+<body>
+  <!-- Bookmarks Bar Container -->
+  <div id="bookmarkBar" class="bookmark-bar"></div>
+  <div class="mainContainer">
+    <!-- MAIN CONTAINER -->
     <div class="container">
       <div class="clock" id="clock"></div>
       <div class="search">
         <form id="searchForm" method="get">
           <div class="search-container">
             <img id="searchEngineIcon" src="https://duckduckgo.com/favicon.ico" alt="Search" class="search-icon" />
-            <input
-              id="searchInput"
-              type="text"
-              name="q"
-              placeholder=" Search with DuckDuckGo..."
-              tabindex="0"
-              autofocus
+            <input id="searchInput" type="text" name="q" placeholder=" Search with DuckDuckGo..." tabindex="0" autofocus
               autocomplete="off" />
             <div id="searchSuggestions" class="search-suggestions"></div>
           </div>
@@ -43,7 +45,7 @@
           <button class="tab-button" data-tab="interface">
             <span class="tab-icon">🛠️</span>
             <span class="tab-label">Interface</span>
-          </button>          
+          </button>
           <button class="tab-button active" data-tab="clock">
             <span class="tab-icon">🕒</span>
             <span class="tab-label">Clock</span>
@@ -71,13 +73,15 @@
         <div class="tabs-content-container">
 
           <!-- Interface Tab -->
-<div id="interface-tab" class="tab-content">
-  <div class="settings-group">
-    <label> Show Clock<input type="checkbox" id="toggleClock" /></label>
-    <label> Show Search Bar<input type="checkbox" id="toggleSearch" /></label>
-    <label> Show Link Grid<input type="checkbox" id="toggleLinks" /></label>
-  </div>
-</div>
+          <div id="interface-tab" class="tab-content">
+            <div class="settings-group">
+              <label>Show Clock<input type="checkbox" id="toggleClock" /></label>
+              <label>Show Search Bar<input type="checkbox" id="toggleSearch" /></label>
+              <label>Show Link Grid<input type="checkbox" id="toggleLinks" /></label>
+              <label>Show Bookmarks Bar (Experimental)<input type="checkbox" id="toggleBookmarks" />
+              </label>
+            </div>
+          </div>
 
           <!-- Clock Tab -->
 
@@ -90,9 +94,9 @@
                 <span>Clock Spacing (px):</span>
                 <input type="range" id="clockMargin" min="0" max="400" step="1" value="40" />
                 <span id="clockMarginValue">40</span>
-              </label>              
+              </label>
               <label><span>Clock Size (rem):</span>
-                <input type="range" id="clockSize" min="2" max="10" step="0.5" value="5"/>
+                <input type="range" id="clockSize" min="2" max="10" step="0.5" value="5" />
                 <span id="clockSizeValue">5</span>
               </label>
               <label><span>Clock Color:</span>
@@ -118,11 +122,11 @@
               </label>
             </div>
             <div class="settings-group">
-              <label><span>Background:</span><input type="color" id="bg"/></label>
-              <label><span>Tile:</span><input type="color" id="tile"/></label>
-              <label><span>Highlight:</span><input type="color" id="highlight"/></label>
-              <label><span>Text:</span><input type="color" id="text"/></label>
-              <label><span>Label:</span><input type="color" id="label"/></label>
+              <label><span>Background:</span><input type="color" id="bg" /></label>
+              <label><span>Tile:</span><input type="color" id="tile" /></label>
+              <label><span>Highlight:</span><input type="color" id="highlight" /></label>
+              <label><span>Text:</span><input type="color" id="text" /></label>
+              <label><span>Label:</span><input type="color" id="label" /></label>
             </div>
             <div class="settings-group settings-group-buttons">
               <button id="exportColors">Export Color Settings</button>
@@ -132,43 +136,43 @@
           </div>
 
           <!-- Links Tab -->
-<div id="links-tab" class="tab-content">
-  <div class="settings-group">
-    <p>Right-click any icon to edit links</p>
-    <p>Drag and drop to rearrange</p>
-    <p>Open links in new tab with middle-mouse-click</p>
-  </div>
-  <div class="settings-group settings-group-buttons">
-    <button id="exportLinks">Export Links</button>
-    <button id="importLinks">Import Links</button>
-    <input type="file" id="importLinksFile" accept=".json" hidden />
-  </div>
-  <div class="settings-group">
-    <div style="font-weight:bold">Export your links before changing columns/rows!</div>
-    <div class="input-row">
-      <label for="cols">Columns:</label>
-      <div class="number-input">
-        <button class="number-btn minus">-</button>
-        <input type="number" id="cols" min="1" max="8" value="8"/>
-        <button class="number-btn plus">+</button>
-      </div>
-    </div>
-    <div class="input-row">
-      <label for="rows">Rows:</label>
-      <div class="number-input">
-        <button class="number-btn minus">-</button>
-        <input type="number" id="rows" min="1" max="5" value="2"/>
-        <button class="number-btn plus">+</button>
-      </div>
-    </div>
-  </div>
-</div>
+          <div id="links-tab" class="tab-content">
+            <div class="settings-group">
+              <p>Right-click any icon to edit links</p>
+              <p>Drag and drop to rearrange</p>
+              <p>Open links in new tab with middle-mouse-click</p>
+            </div>
+            <div class="settings-group settings-group-buttons">
+              <button id="exportLinks">Export Links</button>
+              <button id="importLinks">Import Links</button>
+              <input type="file" id="importLinksFile" accept=".json" hidden />
+            </div>
+            <div class="settings-group">
+              <div style="font-weight:bold">Export your links before changing columns/rows!</div>
+              <div class="input-row">
+                <label for="cols">Columns:</label>
+                <div class="number-input">
+                  <button class="number-btn minus">-</button>
+                  <input type="number" id="cols" min="1" max="8" value="8" />
+                  <button class="number-btn plus">+</button>
+                </div>
+              </div>
+              <div class="input-row">
+                <label for="rows">Rows:</label>
+                <div class="number-input">
+                  <button class="number-btn minus">-</button>
+                  <input type="number" id="rows" min="1" max="5" value="2" />
+                  <button class="number-btn plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- Advanced Tab -->
           <div id="advanced-tab" class="tab-content">
             <div class="settings-group">
               <label>
-                <span>What to focus on opening NewTab:</span>
+                <span>What to focus on opening NewTab (Chromium based only):</span>
                 <select id="focusTarget">
                   <option value="addressbar">Address Bar</option>
                   <option value="searchbar">Search Bar</option>
@@ -202,7 +206,7 @@
     <div id="linkEditModal" class="settings-panel" hidden>
       <div class="modal-content">
         <h2>Edit Link</h2>
-        
+
         <div class="settings-group">
           <label>
             <span>URL:</span>
@@ -221,7 +225,7 @@
             </select>
           </label>
         </div>
-        
+
         <div class="settings-buttons">
           <button id="saveLinkEdit">Save</button>
           <button id="cancelLinkEdit">Cancel</button>
@@ -229,6 +233,8 @@
         </div>
       </div>
     </div>
-    <script src="scripts.js"></script>
-  </body>
+  </div>
+  <script src="scripts.js"></script>
+</body>
+
 </html>

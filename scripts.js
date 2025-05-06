@@ -29,9 +29,10 @@ const defaults = {
     margin: 40
   },
   interface: {
-    showClock: true,     // <— new
+    showClock: true,
     showSearch: true,
-    showLinks: true
+    showLinks: true,
+    showBookmarks: false
   },
   grid: {
     cols: 8,
@@ -129,24 +130,25 @@ let suggestionTimeout = null;
 // Initialize
 document.addEventListener("DOMContentLoaded", async () => {
   await loadFonts();
-	setFocus();
+  setFocus();
+  fetchAndRenderBookmarks();
   applyStoredSettings();
   applyClockStyles();
   renderGrid();
   loadSearchEngine();
-	updateClock();
-	setInterval(updateClock, 1000);
-	setupEventListeners();
+  updateClock();
+  setInterval(updateClock, 1000);
+  setupEventListeners();
 });
 
 function setFocus() {
   const storedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || defaults;
   const focusTarget = storedSettings.focus?.target || defaults.focus.target;
   // If focusTarget is "searchbar" and we're NOT already redirected
-	if (focusTarget === 'searchbar' && !location.search.includes('focus=1')) {
-		location.href = 'index.html?focus=1';  // add a query to mark that we've redirected
-		return; // important! exit early so nothing else runs yet
-	}
+  if (focusTarget === 'searchbar' && !location.search.includes('focus=1')) {
+    location.href = 'index.html?focus=1';  // add a query to mark that we've redirected
+    return; // important! exit early so nothing else runs yet
+  }
 }
 
 async function loadFonts() {
@@ -159,7 +161,7 @@ async function loadFonts() {
       // preload the stylesheet as a high-priority resource…
       const link = document.createElement("link");
       link.rel = "preload";
-      link.as  = "style";
+      link.as = "style";
       link.href = f.importUrl;
       // …then once it's fetched, convert to a stylesheet
       link.onload = () => { link.rel = "stylesheet"; };
@@ -167,7 +169,7 @@ async function loadFonts() {
     }
     const opt = document.createElement("option");
     opt.value = f.css;
-    opt.textContent   = f.label;
+    opt.textContent = f.label;
     opt.style.fontFamily = f.css;
     sel.appendChild(opt);
   });
@@ -205,6 +207,93 @@ function saveSearchEngine(engine) {
   localStorage.setItem(SEARCH_ENGINE_KEY, engine);
   loadSearchEngine();
 }
+
+// Bookmarks Bar
+// ——— Fetch & render the Bookmarks Bar (with folders) ———
+async function fetchAndRenderBookmarks() {
+  if (!chrome.bookmarks || !chrome.bookmarks.getTree) return;
+  // wrap callback API in a Promise
+  const tree = await new Promise(resolve => chrome.bookmarks.getTree(resolve));
+  const barNode = findBarNode(tree);
+  const container = document.getElementById("bookmarkBar");
+  container.innerHTML = "";
+
+  if (barNode && Array.isArray(barNode.children)) {
+    barNode.children.forEach(node => {
+      container.appendChild(makeBookmarkNode(node));
+    });
+  }
+}
+
+// Recursively build a DOM node for a bookmark or folder
+function makeBookmarkNode(node) {
+  // If it's a bookmark URL:
+  if (node.url) {
+    const a = document.createElement("a");
+    a.className = "bookmark-item";
+    a.href = node.url;
+    a.target = "_blank";
+
+    // Favicon
+    const img = document.createElement("img");
+    const host = new URL(node.url).hostname;
+    img.src = `https://icons.duckduckgo.com/ip3/${host}.ico`;
+    img.alt = "";
+    a.appendChild(img);
+
+    // Title
+    const span = document.createElement("span");
+    span.textContent = node.title || host;
+    a.appendChild(span);
+
+    return a;
+
+  // If it's a folder:
+  } else if (Array.isArray(node.children)) {
+    const div = document.createElement("div");
+    div.className = "bookmark-folder";
+
+    // Folder icon
+    const icon = document.createElement("img");
+    icon.src = chrome.runtime.getURL("folder.png");
+    icon.alt = "";
+    icon.className = "folder-icon";
+    div.appendChild(icon);
+
+    // Folder label
+    const label = document.createElement("span");
+    label.textContent = node.title || "Folder";
+    div.appendChild(label);
+
+    // Child container
+    const childContainer = document.createElement("div");
+    childContainer.className = "folder-children";
+    node.children.forEach(child => {
+      childContainer.appendChild(makeBookmarkNode(child));
+    });
+    div.appendChild(childContainer);
+
+    return div;
+  }
+
+  // Fallback empty node
+  return document.createDocumentFragment();
+}
+
+
+// Find the “Bookmarks Bar” node (id "1" in Chrome)
+function findBarNode(nodes) {
+  for (const n of nodes) {
+    if (n.id === "1") return n;
+    if (Array.isArray(n.children)) {
+      const found = findBarNode(n.children);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+
 
 // Link Management
 function loadLinks() {
@@ -594,18 +683,19 @@ function applyStoredSettings() {
     }
 
     // 1) Margin
-if (parsed.clock?.margin != null) {
-  document.getElementById("clockMargin").value = parsed.clock.margin;
-  document.getElementById("clockMarginValue").textContent = parsed.clock.margin;
-  document.getElementById("clock").style.marginBottom = parsed.clock.margin + "px";
-}
+    if (parsed.clock?.margin != null) {
+      document.getElementById("clockMargin").value = parsed.clock.margin;
+      document.getElementById("clockMarginValue").textContent = parsed.clock.margin;
+      document.getElementById("clock").style.marginBottom = parsed.clock.margin + "px";
+    }
 
-// 2) Interface toggles
-const i = parsed.interface || defaults.interface;
-document.getElementById("toggleClock").checked  = i.showClock;
-document.getElementById("toggleSearch").checked = i.showSearch;
-document.getElementById("toggleLinks").checked  = i.showLinks;
-applyInterface(i);
+    // 2) Interface toggles
+    const i = parsed.interface || defaults.interface;
+    document.getElementById("toggleClock").checked = i.showClock;
+    document.getElementById("toggleSearch").checked = i.showSearch;
+    document.getElementById("toggleLinks").checked = i.showLinks;
+    document.getElementById("toggleBookmarks").checked = i.showBookmarks;
+    applyInterface(i);
 
 
     // Apply Focus target
@@ -636,9 +726,10 @@ function saveSettings() {
       margin: parseInt(document.getElementById("clockMargin").value)
     },
     interface: {
-      showClock:  document.getElementById("toggleClock").checked,
+      showClock: document.getElementById("toggleClock").checked,
       showSearch: document.getElementById("toggleSearch").checked,
-      showLinks:  document.getElementById("toggleLinks").checked
+      showLinks: document.getElementById("toggleLinks").checked,
+      showBookmarks: document.getElementById("toggleBookmarks").checked
     },
     focus: {
       target: document.getElementById("focusTarget").value
@@ -716,35 +807,55 @@ function resetSettings() {
     // Reset font dropdown
     const fontSel = document.getElementById("clockFont");
     if (fontSel) fontSel.selectedIndex = 0;  // pick the very first option (“System Default”)
-      applyClockStyles();
+    applyClockStyles();
 
     // reset margin
-document.getElementById("clockMargin").value = defaults.clock.margin;
-document.getElementById("clockMarginValue").textContent = defaults.clock.margin;
-document.getElementById("clock").style.marginBottom = defaults.clock.margin + "px";
+    document.getElementById("clockMargin").value = defaults.clock.margin;
+    document.getElementById("clockMarginValue").textContent = defaults.clock.margin;
+    document.getElementById("clock").style.marginBottom = defaults.clock.margin + "px";
 
-// reset interface toggles
-document.getElementById("toggleClock").checked  = defaults.interface.showClock;
-document.getElementById("toggleSearch").checked = defaults.interface.showSearch;
-document.getElementById("toggleLinks").checked  = defaults.interface.showLinks;
-applyInterface(defaults.interface);
+    // reset interface toggles
+    document.getElementById("toggleClock").checked = defaults.interface.showClock;
+    document.getElementById("toggleSearch").checked = defaults.interface.showSearch;
+    document.getElementById("toggleLinks").checked = defaults.interface.showLinks;
+    document.getElementById("toggleBookmarks").checked = defaults.interface.showBookmarks;
+    applyInterface(defaults.interface);
 
   }
 }
 
 function resetAllSettings() {
-  if (confirm("Are you sure you want to reset ALL settings and links?")) {
-    localStorage.clear();
-    resetSettings();
-    renderGrid();
-    loadSearchEngine();
-    alert("All settings have been reset to defaults");
-  }
+  if (!confirm("Are you sure you want to reset ALL settings and links?")) return;
+
+  // 1) Wipe everything
+  localStorage.clear();
+
+  // 2) Reset Appearance controls + CSS vars
+  resetSettings();  
+
+  // 3) Force the grid back to your defaults & re-draw
+  applyGridLayout(defaults.grid.cols, defaults.grid.rows);
+  renderGrid();
+
+  // 4) Re-initialize search engine UI
+  loadSearchEngine();
+
+  // 5) Restore any interface sections (clock/search/links/bookmarks)
+  applyInterface(defaults.interface);
+
+  saveSettings();
+
+  // 6) Hide the settings panel if it was open
+  settingsPanel.hidden = true;
+
+  // 7) Let the user know we’re done
+  alert("All settings have been reset to defaults");
 }
+
 
 function applyGridLayout(cols, rows) {
   grid.style.gridTemplateColumns = `repeat(${cols}, 96px)`;
-  grid.style.gridTemplateRows    = `repeat(${rows}, 127.2px)`;
+  grid.style.gridTemplateRows = `repeat(${rows}, 127.2px)`;
   TOTAL_TILES = cols * rows;
 
   // Resize link array
@@ -759,10 +870,11 @@ function applyGridLayout(cols, rows) {
   renderGrid();
 }
 
-function applyInterface({ showClock, showSearch, showLinks }) {
-  document.getElementById("clock").style.display       = showClock  ? "" : "none";
-  document.querySelector(".search").style.display      = showSearch ? "" : "none";
-  document.getElementById("linkGrid").style.display    = showLinks  ? "" : "none";
+function applyInterface({ showClock, showSearch, showLinks, showBookmarks }) {
+  document.getElementById("clock").style.display = showClock ? "" : "none";
+  document.querySelector(".search").style.display = showSearch ? "" : "none";
+  document.getElementById("linkGrid").style.display = showLinks ? "" : "none";
+  document.getElementById("bookmarkBar").style.display = showBookmarks ? "flex" : "none";
 }
 
 // Fallback: if clock is hidden, let dblclick on body open settings
@@ -797,21 +909,50 @@ function setupEventListeners() {
   });
 
   // clock margin slider
-document.getElementById("clockMargin").addEventListener("input", (e) => {
-  const v = e.target.value;
-  document.getElementById("clockMarginValue").textContent = v;
-  document.getElementById("clock").style.marginBottom = v + "px";
-});
+  document.getElementById("clockMargin").addEventListener("input", (e) => {
+    const v = e.target.value;
+    document.getElementById("clockMarginValue").textContent = v;
+    document.getElementById("clock").style.marginBottom = v + "px";
+  });
 
-["toggleClock","toggleSearch","toggleLinks"].forEach(id => {
-  document.getElementById(id).addEventListener("change", () => {
-    applyInterface({
-      showClock:  document.getElementById("toggleClock").checked,
-      showSearch: document.getElementById("toggleSearch").checked,
-      showLinks:  document.getElementById("toggleLinks").checked
+  ["toggleClock", "toggleSearch", "toggleLinks"].forEach(id => {
+    document.getElementById(id).addEventListener("change", () => {
+      applyInterface({
+        showClock: document.getElementById("toggleClock").checked,
+        showSearch: document.getElementById("toggleSearch").checked,
+        showLinks: document.getElementById("toggleLinks").checked
+      });
     });
   });
-});
+
+  // Live-update colors as you pick them
+  ['bg', 'tile', 'highlight', 'text', 'label', 'clockColor']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', e => {
+        const v = e.target.value;
+        // Update the CSS var
+        document.documentElement.style.setProperty(`--${id}`, v);
+
+        // If it's the clock color, update clock & preview immediately
+        if (id === 'clockColor') {
+          document.getElementById('clock').style.color = v;
+          const preview = document.getElementById('clockPreview');
+          if (preview) preview.style.color = v;
+        }
+      });
+    });
+
+  document.getElementById("toggleBookmarks")
+    .addEventListener("change", () => {
+      applyInterface({
+        showClock: document.getElementById("toggleClock").checked,
+        showSearch: document.getElementById("toggleSearch").checked,
+        showLinks: document.getElementById("toggleLinks").checked,
+        showBookmarks: document.getElementById("toggleBookmarks").checked
+      });
+    });
 
 
   // Search input events for suggestions
@@ -829,12 +970,15 @@ document.getElementById("clockMargin").addEventListener("input", (e) => {
 
   // Theme selector change listener
   document.getElementById("themeSelector").addEventListener("change", (e) => {
-  applyTheme(e.target.value);
+    applyTheme(e.target.value);
   });
 
   // Settings buttons
   document.getElementById("saveSettings").addEventListener("click", saveSettings);
   document.getElementById("cancelSettings").addEventListener("click", () => {
+    // Re-apply whatever was last saved
+    applyStoredSettings();
+    // Hide the panel
     settingsPanel.hidden = true;
   });
   document.getElementById("resetSettings").addEventListener("click", resetSettings);
@@ -858,7 +1002,7 @@ document.getElementById("clockMargin").addEventListener("input", (e) => {
       document.querySelectorAll(".settings-content .tab-content").forEach((tab) => {
         tab.classList.remove("active");
       });
-      
+
       // Add active class to clicked button and corresponding tab
       button.classList.add("active");
       const tabId = button.getAttribute("data-tab");
@@ -1010,10 +1154,10 @@ async function fetchSuggestions(query) {
     const [historyItems, topSites] = await Promise.all([
       chrome.history
         ? chrome.history.search({
-            text: query,
-            startTime: twoWeeksAgo,
-            maxResults: 10
-          })
+          text: query,
+          startTime: twoWeeksAgo,
+          maxResults: 10
+        })
         : Promise.resolve([]),
       chrome.topSites
         ? chrome.topSites.get()
@@ -1140,7 +1284,7 @@ function highlightMatches(text, query) {
   let lastIndex = 0;
 
   // Find all occurrences of the query in the text
-  for (let i = 0; i < text.length; ) {
+  for (let i = 0; i < text.length;) {
     const matchIndex = lowerText.indexOf(lowerQuery, i);
     if (matchIndex === -1) break;
 
@@ -1222,7 +1366,7 @@ function applyClockStyles() {
 
 function applyTheme(themeName) {
   const theme = themes[themeName] || themes['default'];
-  
+
   for (const [key, value] of Object.entries(theme)) {
     document.documentElement.style.setProperty(`--${key}`, value);
     // Update color inputs if they exist

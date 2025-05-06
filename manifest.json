@@ -10,7 +10,8 @@
     "activeTab",
     "storage",
     "history",
-    "topSites"
+    "topSites",
+    "bookmarks"
   ],
   "browser_specific_settings": {
     "gecko": {
