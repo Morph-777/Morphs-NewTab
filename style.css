@@ -1,51 +1,55 @@
-@import url('https://api.fonts.coollabs.io/css2?family=Inter:wght@400;700&family=Roboto:wght@400;700&family=Open+Sans:wght@400;700&family=Montserrat:wght@400;700&family=Poppins:wght@400;700&display=swap');
-
 :root {
   --bg: #202124;
+  --sg-bg: #202124;
   --tile: #303036;
+  --sg-tile: #303036;
   --highlight: #404145;
-  --divider: color-mix(in srgb, var(--highlight) 90%, white 10%);
+  --tab-highlight: #3355EE;
+  --sg-highlight: #404145;
+  --sg-divider: color-mix(in srgb, var(--sg-highlight) 90%, white 10%);
   --text: #ffffff;
+  --sg-text: #ffffff;
   --clockColor: #ffffff;
   --label: #dddddd;
-  --input-bg: var(--tile);
+  --input-bg: var(--sg-tile);
   --input-glow: rgba(170, 170, 255, 1);
   --shadow: rgba(0, 0, 0, 0.3);
   --warn: #ff4444;
   --suggestion-border: #444;
   --lighten: 120%;
   --match: rgba(255, 221, 0, 0.85);
-  --radius: 6px;
-}
+  --radius: 8px;
+  outline-width: 1px;
 
-html {
-  background: var(--bg);
-}
-
-/* ——— Fade-in everything ——— */
-body {
-  background: var(--bg);
-  opacity: 0;
-  /* start hidden */
-  transition: opacity 0.2s ease;
+  interpolate-size: allow-keywords;
 }
 
 html.fonts-loaded body {
   opacity: 1;
-  /* fade in when ready */
+}
+
+h3 {
+  font-weight: 200;
+  margin-left: 4px;
+}
+
+h3:is(:first-child) {
+  margin-block-start: 0px;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  font-family: "Open Sans", sans-serif;
   font-size: .9rem;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--bg) no-repeat center center / cover;
+  color: var(--sg-text);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
   height: 100vh;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .mainContainer {
@@ -64,6 +68,7 @@ body {
   background: var(--tile);
   border-bottom: 1px solid var(--highlight);
 }
+
 .bookmark-bar a {
   color: var(--text);
   text-decoration: none;
@@ -73,6 +78,7 @@ body {
   text-overflow: ellipsis;
   max-width: 120px;
 }
+
 .bookmark-bar a:hover {
   text-decoration: underline;
 }
@@ -85,9 +91,11 @@ body {
   border: none;
   border-radius: 8px;
   background-color: var(--tile);
-  color: var(--text);
+  color: var(--sg-text);
   box-shadow: 0 0 4px var(--shadow);
-  outline: none;
+  outline-style: solid;
+  outline-width: 0;
+  outline-offset: -1px;
   transition: box-shadow 0.2s ease;
 }
 
@@ -115,6 +123,7 @@ body {
 
 /* Search suggestions dropdown */
 .search-suggestions {
+  display: block;
   position: absolute;
   top: calc(100% - 8px);
   left: 0;
@@ -125,23 +134,20 @@ body {
   border-radius: 0 0 8px 8px;
   box-shadow: 0 4px 6px var(--shadow);
   z-index: 100;
-
-  /* always in the DOM, but hidden by default */
-  display: block;
   opacity: 0;
   visibility: hidden;
   transform: translateY(-10px);
-  transition: opacity 0.1s ease-out, transform 0.05s ease-out;
-
-  border-top: none;
-  padding-top: 8px;
+  transition:
+    opacity 0.05s ease,
+    transform 0.05s ease,
+    visibility 0s linear 0.05s;
 }
 
 .search-suggestions.visible {
-  /* slide/fade in */
   visibility: visible;
   opacity: 1;
   transform: translateY(0);
+  transition-delay: 0s;
 }
 
 .suggestion-item {
@@ -151,27 +157,18 @@ body {
   align-items: center;
   position: relative;
   background: var(--tile);
-  /* Match search bar */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: left;
-  /*
-  border-left-style: solid;
-  border-right-style: solid;
-  border-width: 1px;
-  border-color: var(--input-glow);
-  */
 }
 
 .suggestion-item>span:first-of-type {
-  /* Target the title span */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
   min-width: 0;
-  /* Important for flex truncation */
   margin-right: 4px;
 }
 
@@ -180,7 +177,6 @@ body {
 }
 
 .suggestion-item.selected {
-  /*background: var(--highlight);*/
   filter: brightness(var(--lighten));
 }
 
@@ -213,23 +209,27 @@ body {
 }
 
 .container {
+  display: flex;
+  flex-direction: column;
   text-align: center;
-  width: 100%;
   max-width: 768px;
   margin-bottom: 90px;
+  align-items: center;
 }
 
 .clock {
   font-size: 5rem;
   color: var(--clockColor);
+  background-color: var(--clockBg);
+  border-radius: 100vw;
   margin-bottom: 40px;
   cursor: pointer;
-  transition: color 1s;
   user-select: none;
-}
+  width: fit-content;
+  padding: 0px 50px;
 
-.clock:hover {
-  color: var(--input-glow);
+  text-box-trim: trim-both;
+  text-box-edge: cap alphabetic;
 }
 
 .link-grid {
@@ -238,6 +238,7 @@ body {
   justify-items: center;
   justify-content: space-between;
   row-gap: 24px;
+  column-gap: 0;
 }
 
 .link-tile {
@@ -251,6 +252,8 @@ body {
   cursor: pointer;
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
   align-items: center;
+  outline-style: solid;
+  outline-width: 0;
 }
 
 .link-tile img {
@@ -283,7 +286,7 @@ body {
 
 .link-label {
   font-size: 0.8rem;
-  width: 100%;
+  max-width: 95%;
   margin-top: 6px;
   color: var(--label);
   text-align: center;
@@ -301,43 +304,57 @@ body {
   -webkit-line-clamp: 2;
   overflow: hidden;
   overflow-wrap: break-word;
-  /* (optional) standard property */
   line-clamp: 2;
 }
 
 
 /* ===== SETTINGS PANEL ===== */
-.settings-panel {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--tile);
-  color: var(--text);
-  border: 1px solid var(--highlight);
-  border-radius: 12px;
-  z-index: 1000;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-  max-height: 80vh;
-  min-height: 40vh;
-  display: flex;
-  flex-direction: row;
-  overflow: hidden;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  opacity: 0;
+
+.settings-header {
+  text-align: center;
+  padding: 12px 16px;
+  font-size: 1.25rem;
+  font-weight: 400;
+  font-family: Rubik;
+  background: var(--sg-tile);
+  color: var(--sg-text);
 }
 
-.settings-panel[hidden] {
-  display: block;
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 600px;
+  background: var(--sg-tile);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  /* Open/close animation */
+  transform: translateX(100%);
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, -48%);
+  transition: transform 0.08s ease-out, opacity 0.08s linear;
+}
+
+/* draggable resize bar */
+.resize-handle {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 8px;
+	height: 100%;
+	cursor: ew-resize;
+  z-index: 9999;
 }
 
 .settings-panel:not([hidden]) {
+  transform: translateX(0);
   opacity: 1;
   pointer-events: all;
-  transform: translate(-50%, -50%);
 }
 
 .settings-panel h2 {
@@ -346,46 +363,115 @@ body {
 }
 
 .settings-sidebar {
-  width: auto;
-  background: var(--highlight);
-  padding: 20px;
+  height: auto;
   display: flex;
-  flex-direction: column;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  overflow: hidden;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 20px;
+  background-color: var(--sg-tile);
+  margin: 20px 0;
 }
 
 .settings-content {
-  flex: auto;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  min-width: 600px;
+  overflow: auto;
+  scrollbar-gutter: stable;
 }
 
 /* Tabs */
 .settings-tabs {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 20px 0;
-  flex: 1;
+  flex-direction: row;
+  min-height: 2.7rem;
+  width: 100%;
+  justify-content: space-between;
 }
 
-.tab-button {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  background: none;
-  border: none;
-  color: var(--text);
-  cursor: pointer;
-  opacity: 0.7;
+/* ── Dropdown wrapper ── */
+.settings-dropdown {
+  margin-bottom: 16px;
   border-radius: var(--radius);
-  transition: all 0.2s;
-  text-align: left;
-  width: 100%;
+  overflow: hidden;
+  background: var(--sg-highlight);
+}
+
+.settings-dropdown .settings-group {
+  margin-bottom: 0;
+}
+
+.settings-dropdown summary {
+  cursor: pointer;
+  padding: 12px 16px;
+  font-size: 1rem;
+  font-weight: 500;
+  user-select: none;
+  align-items: center;
+
+  &:hover {
+		background-color: var(--tab-highlight);
+	}
+}
+
+details::details-content {
+  /*  overflow: hidden; */
+  block-size: 0;
+  transition: 
+    block-size 300ms,
+    content-visibility 300ms;
+  transition-behavior: allow-discrete;
+}
+
+details[open]::details-content {
+  block-size: auto;
+}
+
+.settings-dropdown-content {
+  display: grid;
+  border-top: 1px solid var(--sg-divider);
+}
+
+/* .settings-dropdown details {
+  overflow: hidden;
+  transition: height 300ms ease-out;
+} */
+
+
+/* SETTINGS TABS */
+
+.tab-button {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  flex: 1 1 0;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  color: var(--sg-text);
+  background-color: var(--sg-highlight);
+  outline: none;
+  box-shadow: none;
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.settings-tabs .tab-button:first-child {
+  border-top-left-radius: var(--radius);
+  border-bottom-left-radius: var(--radius);
+}
+
+.settings-tabs .tab-button:last-child {
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+}
+
+.settings-tabs .tab-button:not(.active):not(:first-child) {
+  box-shadow: inset 1px 0 0 var(--sg-divider);
+}
+
+.settings-tabs .tab-button.active+.tab-button {
+  box-shadow: none;
 }
 
 .tab-button:hover {
@@ -393,17 +479,70 @@ body {
 }
 
 .tab-button.active {
-  opacity: 1;
-  background: var(--tile);
-}
-
-.tab-icon {
-  font-size: 1.2em;
+  background: var(--tab-highlight);
+  border: none;
 }
 
 .tab-label {
   font-size: 1.2em;
 }
+
+.tab-icon {
+  font-size: 1.3em;
+  margin-right: 2px;
+}
+
+.tabs-content-container {
+  flex: 1;
+  position: relative;
+}
+
+.tab-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-top: 10px;
+  overflow-y: auto;
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.tabs-content-container .tab-content {
+  position: relative;
+  padding: 0 12px 20px 20px;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.tabs-content-container .tab-content.active {
+  display: block;
+}
+
+/* Custom scrollbar */
+.settings-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.settings-content::-webkit-scrollbar-track {
+  background: none;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.settings-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* SOCIAL LINKS */
 
 .social-links {
   margin-top: auto;
@@ -414,76 +553,20 @@ body {
   gap: 20px;
 }
 
-.social-links a {
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
 .social-links img {
-  width: 24px;
-  height: 24px;
+  height: 40px;
 }
 
-.tabs-content-container {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+.git {
+  filter: grayscale(100%);
+  filter: brightness(200);
 }
 
-.tab-content {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 20px;
-  overflow-y: auto;
-  display: none;
-}
 
-.tab-content.active {
-  display: block;
-}
-
-.tabs-content-container .tab-content {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow-y: auto;
-  padding-right: 10px;
-  display: none;
-}
-
-.tabs-content-container .tab-content.active {
-  display: block;
-}
-
-/* Custom scrollbar */
-.tab-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.tab-content::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
-}
-
-.tab-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-}
-
-.tab-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
 
 /* Settings Groups */
 .settings-group {
-  background: var(--highlight);
+  background: var(--sg-highlight);
   padding: 16px;
   border-radius: 8px;
   margin-bottom: 16px;
@@ -492,7 +575,7 @@ body {
 .settings-group-buttons {
   display: flex;
   gap: 10px;
-  background-color: var(--tile);
+  background-color: var(--sg-tile);
   padding: 0;
 }
 
@@ -509,23 +592,29 @@ body {
 }
 
 .settings-group label>span {
-  flex: 1;
-  text-align: left;
+  text-align: right;
   padding-right: 10px;
+  min-width: 50px;
 }
 
 .settings-group label:not(:first-child) {
   margin-top: 5px;
-  border-top: 1px solid var(--divider);
+  border-top: 1px solid var(--sg-divider);
   padding-top: 5px;
 }
 
-/* ensure the label/span style carries to your toggles */
 .settings-group label input[type="checkbox"] {
   margin-right: 8px;
 }
 
-/* Number Input Styling */
+.settings-group label input:is([type="color"], [type="range"]) {
+  margin-left: auto;
+}
+
+.settings-group label input[type="color"] {
+  margin-left: 0;
+}
+
 .number-input {
   display: flex;
   align-items: center;
@@ -539,7 +628,7 @@ body {
   border: none;
   border-radius: 4px;
   background: var(--input-bg);
-  color: var(--text);
+  color: var(--sg-text);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -561,10 +650,9 @@ body {
   display: flex;
   gap: 10px;
   padding: 20px;
-  background: var(--tile);
-  border-top: 1px solid var(--highlight);
+  background: var(--sg-tile);
+  border-top: 1px solid var(--sg-highlight);
   margin-top: auto;
-  /* Push to bottom */
 }
 
 .settings-buttons button,
@@ -574,8 +662,8 @@ body {
   padding: 10px;
   border: none;
   border-radius: var(--radius);
-  background: var(--highlight);
-  color: var(--text);
+  background: var(--sg-highlight);
+  color: var(--sg-text);
   cursor: pointer;
   transition: background 0.2s;
   font-size: 0.9rem;
@@ -590,7 +678,7 @@ body {
 .settings-buttons button:hover,
 .settings-group button:hover {
   background: var(--input-glow);
-  color: var(--bg);
+  color: var(--sg-bg);
 }
 
 #resetAll,
@@ -605,7 +693,7 @@ body {
   background: var(--input-bg);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
-  color: var(--text);
+  color: var(--sg-text);
   text-align: center;
   -moz-appearance: textfield;
   appearance: textfield;
@@ -617,15 +705,14 @@ body {
   margin: 0;
 }
 
-.settings-panel select {
+select {
   padding: 0.5rem;
   background: var(--input-bg);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius);
-  color: var(--text);
+  color: var(--sg-text);
 }
 
-/* Simplified Color Input Styling */
 .settings-panel input[type="color"] {
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -659,7 +746,10 @@ body {
   padding: 0;
 }
 
-/* Link Edit Modal */
+.settings-panel.interacting {
+  opacity: 0.3;
+}
+
 #linkEditModal {
   width: 400px;
   min-height: auto;
@@ -671,7 +761,7 @@ body {
   background: var(--input-bg);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
-  color: var(--text);
+  color: var(--sg-text);
 }
 
 #linkEditModal .settings-buttons {
@@ -692,12 +782,10 @@ body {
 }
 
 #clockPreview {
-  margin-top: 5px;
-  border-top: 1px solid var(--divider);
-  background-color: var(--highlight);
+  background-color: var(--bg);
+  border-radius: var(--radius);
   text-align: center;
   transition: all 0.2s ease;
-  color: var(--clockColor);
 }
 
 input[type="range"] {
@@ -713,19 +801,31 @@ input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 20px;
   height: 20px;
-  background: var(--input-glow);
+  background: rgb(0 117 255);
   border-radius: 50%;
   cursor: pointer;
 }
 
-/* Link Edit Modal */
+input[type="range"]::-webkit-slider-thumb:hover {
+  outline: 4px solid rgba(0, 119, 255, 0.39);
+  outline-offset: 0;
+}
+
+input[type="range" i]::-webkit-slider-container {
+    appearance: inherit;
+    min-inline-size: 0px;
+    box-sizing: border-box;
+    border-radius: var(--radius);
+    display: flex;
+    -webkit-user-modify: read-only !important;
+    flex: 1 1 0%;
+    background: white;
+}
+
 #linkEditModal {
   width: 400px;
-  /* Fixed width */
   min-height: auto;
-  /* Auto height */
   padding: 20px;
-  /* Consistent padding */
   display: flex;
   flex-direction: column;
 }
@@ -735,7 +835,6 @@ input[type="range"]::-webkit-slider-thumb {
   gap: 0;
 }
 
-/* Keep original button styling for modal */
 #linkEditModal .settings-buttons {
   margin-top: 20px;
   display: flex;
@@ -746,6 +845,44 @@ input[type="range"]::-webkit-slider-thumb {
   flex: 1;
 }
 
+.link-edit-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--tile);
+  color: var(--text);
+  border: 1px solid var(--highlight);
+  border-radius: 12px;
+  z-index: 1000;
+  box-shadow: 0 0 20px var(--shadow);
+  max-height: 80vh;
+  min-height: 40vh;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  opacity: 0;
+}
+
+.link-edit-panel[hidden] {
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -48%);
+}
+
+.link-edit-panel:not([hidden]) {
+  opacity: 1;
+  pointer-events: all;
+  transform: translate(-50%, -50%);
+}
+
+.link-edit-panel h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
 .input-row {
   display: flex;
   align-items: center;
@@ -754,40 +891,35 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: 8px;
 }
 
-/* —— Clock Font Dropdown Styling —— */
 #clockFont {
   padding: 0.5rem;
-  border: 1px solid var(--divider);
+  border: 1px solid var(--sg-divider);
   border-radius: var(--radius);
-  background: var(--tile);
-  color: var(--text);
+  background: var(--sg-tile);
+  color: var(--sg-text);
   box-shadow: inset 0 0 4px var(--shadow);
 }
 
-/* Scrollbar styling for WebKit browsers */
 #clockFont::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 #clockFont::-webkit-scrollbar-track {
-  background: var(--tile);
+  background: var(--sg-tile);
 }
 
 #clockFont::-webkit-scrollbar-thumb {
-  background: var(--highlight);
+  background: var(--sg-highlight);
   border-radius: 4px;
 }
 
-/* Scrollbar styling for Firefox */
 #clockFont {
   scrollbar-width: thin;
-  scrollbar-color: var(--highlight) var(--tile);
+  scrollbar-color: var(--sg-highlight) var(--sg-tile);
 }
 
-/* BOOKMARK BAR STYLING UNCLEAN */
-
-/* ——— Simplified Bookmark Bar Styling ——— */
+/* BOOKMARK BAR STYLING */
 #bookmarkBar {
   display: flex;
   flex-wrap: wrap;
@@ -847,7 +979,7 @@ input[type="range"]::-webkit-slider-thumb {
   background: var(--tile);
   border: 1px solid var(--highlight);
   border-radius: var(--radius);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   padding: 4px;
   z-index: 1000;
 }
@@ -861,6 +993,53 @@ input[type="range"]::-webkit-slider-thumb {
   margin: 2px 0;
 }
 
+/* —— Wallpaper Picker Styling —— */
+#wallpaperFile {
+  position: relative;
+  color: transparent;
+  background: var(--sg-highlight);
+  border: none;
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-sizing: border-box;
+  width: 100%;
+}
 
+#wallpaperFile::-webkit-file-upload-button {
+  visibility: hidden;
+  width: 0;
+  height: 0;
+}
 
+#wallpaperFile::before {
+  content: attr(data-label);
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--sg-text);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.2s ease, color 0.2s ease;
+  text-overflow: ellipsis;
+}
 
+#wallpaperFile:hover::before,
+#wallpaperFile:focus::before {
+  color: var(--bg);
+  background: var(--input-glow);
+}
+
+.settings-group-buttons>#wallpaperFile {
+  flex: 1;
+  min-width: 0;
+  align-content: center;
+}
