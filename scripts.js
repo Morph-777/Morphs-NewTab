@@ -7,8 +7,6 @@ const STORAGE_KEY = "customLinks";
 const SETTINGS_KEY = "customSettings";
 const SEARCH_ENGINE_KEY = "searchEngine";
 const FAVICON_PROVIDER_KEY = "faviconProvider";
-const CLOCK_FONT_KEY = "clockFont";
-const CLOCK_SIZE_KEY = "clockSize";
 
 const grid = document.getElementById("linkGrid");
 const searchForm = document.getElementById("searchForm");
@@ -77,6 +75,7 @@ const searchEngines = {
   yahoo: {
     name: "Yahoo",
     url: "https://search.yahoo.com/search",
+    queryParam: "p",
     icon: "https://search.yahoo.com/favicon.ico"
   },
   ecosia: {
@@ -158,39 +157,49 @@ let TOTAL_TILES = defaults.grid.cols * defaults.grid.rows;
 let dragSourceIndex = null;
 let focusedTileIndex = 0;
 let allowFocusRestore = false;
-let currentDropTarget = null;
 let lastDropTarget = null;
 let dropTimeout = null;
 let currentlyEditingIndex = null;
 let lastSuggestionQuery = "";
 let suggestionTimeout = null;
 let currentWallpaperURL = null;
+let pendingWallpaper;
+let lastFocusedElement = null;
+let fontCatalog = [];
+
+const extensionApi = typeof chrome !== "undefined" ? chrome : null;
 
 // ==========================
 // 🚀 INITIALIZATION
 // ==========================
 
-document.addEventListener("DOMContentLoaded", () => {
-  setFocus();
-  initDB().then(db => loadSavedWallpaper(db));
-
-  applyStoredSettings();
-  applyClockStyles();
-  loadSearchEngine();
-
-  renderGrid();
-
-  initMorphDefs();
-  buildMorphControls();
-  applyMorphSettings(getSettings());
-
-  updateClock();
-  window.requestIdleCallback(async () => {
-    await loadFonts();
-    fetchAndRenderBookmarks();
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    setFocus();
+    applyStoredSettings();
+    updateClock();
     setupEventListeners();
     setInterval(updateClock, 60_000);
-  });
+
+    try {
+      const db = await initDB();
+      await loadSavedWallpaper(db);
+    } catch (error) {
+      console.warn("Wallpaper storage is unavailable:", error);
+    }
+
+    const runWhenIdle = window.requestIdleCallback || ((callback) => setTimeout(callback, 0));
+    runWhenIdle(async () => {
+      await loadFonts();
+      try {
+        await fetchAndRenderBookmarks();
+      } catch (error) {
+        console.warn("Bookmarks could not be loaded:", error);
+      }
+    });
+  } catch (error) {
+    console.error("New tab initialization failed:", error);
+  }
 });
 
 
@@ -223,6 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
  */
 
 let morphDefs = [];
+let morphRuleValues = new Map();
 
 function toCamelCase(str) {
   return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
@@ -276,10 +286,9 @@ function parseMorphAttribute(el) {
     }
   }
 
-  // capture each def’s default computed value
+  // Capture defaults from the actual target, not always from the host element.
   defs.forEach(d => {
-    const cs = getComputedStyle(d.el)[d.prop];
-    d.default = d.type === 'range' ? parseFloat(cs) : cs;
+    d.default = getDefaultValue(d);
   });
 
   return defs;
@@ -311,35 +320,94 @@ function parseProps(el, selector, section, body, defs) {
   }
 }
 
-function applyStyle(def, value) {
-  // Determine target elements
-  let elements;
-  if (def.selector === 'self') {
-    elements = [def.el];
-  } else if (def.selector.startsWith('child')) {
-    const idx = parseInt(def.selector.slice(5), 10) - 1;
-    elements = def.el.children[idx] ? [def.el.children[idx]] : [];
-  } else {
-    // Try as ID first
-    elements = Array.from(def.el.querySelectorAll(`#${def.selector}`));
-
-    // If no elements found, try as class
-    if (!elements.length) {
-      elements = Array.from(def.el.querySelectorAll(`.${def.selector}`));
-    }
-
-    // If still none, try as tag name
-    if (!elements.length) {
-      elements = Array.from(def.el.getElementsByTagName(def.selector));
-    }
-
-    // Fallback to host element if nothing found
-    if (!elements.length) elements = [def.el];
+function selectorFor(def, stripPseudo = false) {
+  if (def.selector === 'self') return null;
+  if (def.selector.startsWith('child')) {
+    const index = parseInt(def.selector.slice(5), 10);
+    return `:scope > :nth-child(${index})`;
   }
 
-  elements.forEach(target => {
-    target.style[def.prop] = value;
+  const aliases = {
+    linkTile: '.link-tile',
+    linkLabel: '.link-label'
+  };
+  let selector = aliases[def.selector] || def.selector;
+  if (!['.', '#', '[', ':'].includes(selector[0]) && !selector.includes(' ')) {
+    const kebab = selector.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+    selector = `.${kebab}`;
+  }
+  return stripPseudo ? selector.replace(/:{1,2}[\w-]+(?:\([^)]*\))?/g, '') : selector;
+}
+
+const morphCustomProperties = {
+  clockShadowColor: '--clock-shadow-color',
+  clockShadowX: '--clock-shadow-x',
+  clockShadowY: '--clock-shadow-y',
+  clockShadowBlur: '--clock-shadow-blur'
+};
+
+function cssPropertyFor(def) {
+  return morphCustomProperties[def.prop]
+    || def.prop.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`);
+}
+
+function targetElements(def) {
+  if (def.selector === 'self') return [def.el];
+  try {
+    return Array.from(def.el.querySelectorAll(selectorFor(def, true)));
+  } catch (error) {
+    console.warn(`Invalid Morph selector: ${def.selector}`, error);
+    return [];
+  }
+}
+
+function normalizeMorphValue(def, value) {
+  if (def.type === 'range') {
+    const number = Math.min(def.max, Math.max(def.min, parseFloat(value)));
+    return Number.isFinite(number) ? `${number}${def.unit}` : `${def.default}${def.unit}`;
+  }
+  const validationProperty = def.prop === 'clockShadowColor' ? 'color' : cssPropertyFor(def);
+  return typeof value === 'string' && CSS.supports(validationProperty, value) ? value : def.default;
+}
+
+function renderMorphRules() {
+  let style = document.getElementById('morphRuntimeStyles');
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'morphRuntimeStyles';
+    document.head.appendChild(style);
+  }
+  style.textContent = Array.from(morphRuleValues.values()).map(({ def, value }) => {
+    const selector = selectorFor(def);
+    return `#${def.el.id} ${selector} { ${cssPropertyFor(def)}: ${value} !important; }`;
+  }).join('\n');
+}
+
+function applyStyle(def, value) {
+  const normalized = normalizeMorphValue(def, value);
+  if (def.selector === 'self') {
+    if (morphCustomProperties[def.prop]) {
+      def.el.style.setProperty(cssPropertyFor(def), normalized);
+    } else {
+      def.el.style[def.prop] = normalized;
+    }
+    return;
+  }
+  morphRuleValues.set(morphKey(def), { def, value: normalized });
+  renderMorphRules();
+}
+
+function clearMorphStyles() {
+  morphDefs.forEach(def => {
+    if (def.selector !== 'self') return;
+    if (morphCustomProperties[def.prop]) {
+      def.el.style.removeProperty(cssPropertyFor(def));
+    } else {
+      def.el.style[def.prop] = '';
+    }
   });
+  morphRuleValues.clear();
+  renderMorphRules();
 }
 function initMorphDefs() {
   morphDefs = [];
@@ -353,11 +421,11 @@ function morphKey(def) {
     : def.selector;
   return `${base}-${def.prop}`;
 }
-function buildMorphControls() {
+function buildMorphControls(morphValues = null) {
   document.querySelectorAll('.settings-group.morph-generated')
     .forEach(g => g.remove());
 
-  const savedMorph = getSettings().morph || {};
+  const savedMorph = morphValues || getSettings().morph || {};
 
   const bySection = morphDefs.reduce((acc, def) => {
     (acc[def.section] = acc[def.section] || []).push(def);
@@ -375,28 +443,9 @@ function buildMorphControls() {
     }, {});
 
     // build one .settings-group per selector-group
-    for (const [groupKey, defsForGroup] of Object.entries(byGroup)) {
+    for (const defsForGroup of Object.values(byGroup)) {
       const group = document.createElement('div');
       group.className = 'settings-group morph-generated';
-
-      const host = defsForGroup[0].el;
-      let targetEls = [];
-      if (groupKey === 'self' || groupKey === host.id) {
-        targetEls = [host];
-      } else if (/^child(\d+)$/.test(groupKey)) {
-        const idx = parseInt(groupKey.match(/^child(\d+)$/)[1], 10) - 1;
-        targetEls = [host.children[idx] || host];
-      } else {
-        // try ID → class → kebab-case class → tag → fallback
-        let found = host.querySelectorAll(`#${groupKey}`);
-        if (!found.length) found = host.querySelectorAll(`.${groupKey}`);
-        if (!found.length) {
-          const kebab = groupKey.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-          found = host.querySelectorAll(`.${kebab}`);
-        }
-        if (!found.length) found = host.querySelectorAll(groupKey);
-        targetEls = found.length ? Array.from(found) : [host];
-      }
 
       defsForGroup.forEach(def => {
         const wrap = document.createElement('label');
@@ -423,7 +472,7 @@ function buildMorphControls() {
           inp.addEventListener('input', e => {
             const v = e.target.value + def.unit;
             vs.textContent = v;
-            targetEls.forEach(t => t.style[def.prop] = v);
+            applyStyle(def, v);
           });
 
           wrap.append(inp, vs);
@@ -432,15 +481,14 @@ function buildMorphControls() {
           const col = document.createElement('input');
           col.type = 'color';
           col.setAttribute('data-morph-key', key);
-          const init = savedMorph[key] || def.default;
+          const init = normalizeMorphValue(def, savedMorph[key] || def.default);
           col.value = rgbToHex(init);
 
           const alpha = document.createElement('input');
           alpha.type = 'range';
           alpha.setAttribute('data-morph-key', key);
           alpha.min = 0; alpha.max = 100; alpha.step = 1;
-          const m = init.match(/rgba?\([^)]+,\s*([\d.]+)\)/);
-          alpha.value = m ? Math.round(parseFloat(m[1]) * 100) : 100;
+          alpha.value = Math.round(colorToRgba(init).a * 100);
 
           const aval = document.createElement('span');
           aval.textContent = `${alpha.value}%`;
@@ -449,7 +497,7 @@ function buildMorphControls() {
             const { r, g, b } = hexToRgb(col.value);
             const a = alpha.value / 100;
             const rgba = `rgba(${r},${g},${b},${a})`;
-            targetEls.forEach(t => t.style[def.prop] = rgba);
+            applyStyle(def, rgba);
             aval.textContent = `${alpha.value}%`;
           };
 
@@ -473,23 +521,24 @@ function applyMorphSettings(settings) {
     const key = morphKey(def);
     const stored = morph[key];
     if (stored == null) return;
+    const normalized = normalizeMorphValue(def, stored);
 
     // apply to page
-    applyStyle(def, stored);
+    applyStyle(def, normalized);
 
     // mirror into inputs
     if (def.type === 'range') {
       const inp = document.querySelector(`input[type=range][data-morph-key="${key}"]`);
+      if (!inp) return;
       const vs = inp.nextElementSibling;
-      const num = parseFloat(stored);
+      const num = parseFloat(normalized);
       inp.value = num;
-      vs.textContent = stored;
+      vs.textContent = normalized;
     } else {
       const col = document.querySelector(`input[type=color][data-morph-key="${key}"]`);
       const alpha = document.querySelector(`input[type=range][data-morph-key="${key}"]`);
-      const m = stored.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
-      if (m) {
-        const [, r, g, b, a] = m.map(Number);
+      if (col) {
+        const { r, g, b, a } = colorToRgba(normalized);
         col.value = rgbToHex(`rgb(${r},${g},${b})`);
         if (alpha) {
           alpha.value = Math.round(a * 100);
@@ -500,16 +549,47 @@ function applyMorphSettings(settings) {
   });
 }
 function getDefaultValue(def) {
-  let value;
-  if (def.selector === 'self') value = getComputedStyle(def.el)[def.prop];
-  else if (def.selector.startsWith('child')) {
-    const idx = parseInt(def.selector.slice(5), 10) - 1;
-    const ch = def.el.children[idx]; if (ch) value = getComputedStyle(ch)[def.prop];
-  } else {
-    const ch = def.el.querySelector('.' + def.selector);
-    if (ch) value = getComputedStyle(ch)[def.prop];
+  const property = cssPropertyFor(def);
+  let value = '';
+
+  if (def.selector !== 'self' && selectorFor(def).includes(':')) {
+    const wantedSelector = selectorFor(def);
+    const findRuleValue = rules => {
+      for (const rule of rules) {
+        if (rule.cssRules) {
+          const nested = findRuleValue(rule.cssRules);
+          if (nested) return nested;
+        }
+        if (rule.selectorText && rule.selectorText.split(',').some(item => item.trim() === wantedSelector)) {
+          const candidate = rule.style.getPropertyValue(property);
+          if (candidate) return candidate;
+        }
+      }
+      return '';
+    };
+    for (const sheet of document.styleSheets) {
+      try {
+        value = findRuleValue(sheet.cssRules);
+      } catch {
+        // Ignore stylesheets that are not readable in the current origin.
+      }
+      if (value) break;
+    }
   }
-  return def.type === 'range' ? parseFloat(value) : value;
+
+  if (!value) {
+    const target = targetElements(def)[0] || def.el;
+    value = getComputedStyle(target).getPropertyValue(property) || getComputedStyle(target)[def.prop];
+  }
+
+  value = value.trim().replace(/var\((--[\w-]+)\)/g, (_, variable) =>
+    getComputedStyle(document.documentElement).getPropertyValue(variable).trim()
+  );
+  if (def.type === 'range') {
+    const number = parseFloat(value);
+    return Number.isFinite(number) ? number : def.min;
+  }
+  return value || 'rgba(0, 0, 0, 0)';
 }
 function splitTopLevel(str) {
   const parts = [];
@@ -546,11 +626,6 @@ function collectMorphSettings() {
   });
   return out;
 }
-function saveMorphSettings() {
-  const data = collectMorphSettings();
-  localStorage.setItem('morphSettings', JSON.stringify(data));
-}
-
 ////////////////////////////////////////////////////////////
 
 // ==========================
@@ -583,61 +658,57 @@ const elCancelSettings = document.getElementById("cancelSettings");
 const elResetSettings = document.getElementById("resetSettings");
 const elResetAll = document.getElementById("resetAll");
 
-function setupEventListeners() {
-  
-/*   function enablePanelDimmingOnInteract() {
-    const panel = document.querySelector('.settings-panel');
-    if (!panel) return;
+function openSettings() {
+  lastFocusedElement = document.activeElement;
+  pendingWallpaper = undefined;
+  loadSettingsToForm();
+  elSettingsPanel.hidden = false;
+  elSettingsPanel.querySelector('.tab-button.active')?.focus();
+}
 
-    // 1) Dim on pointerdown *only* if it’s an input (not checkbox)
-    panel.addEventListener('pointerdown', e => {
-      const t = e.target;
-      if (t.tagName === 'INPUT' && t.type !== 'checkbox') {
-        panel.classList.add('interacting');
-      }
-    });
+async function cancelSettings() {
+  clearMorphStyles();
+  applyStoredSettings();
+  pendingWallpaper = undefined;
+  await restoreSavedWallpaper();
+  elSettingsPanel.hidden = true;
+  lastFocusedElement?.focus();
+}
 
-    // 2) Undim on pointerup unless it's a color still open
-    panel.addEventListener('pointerup', e => {
-      const t = e.target;
-      if (!(t.tagName === 'INPUT' && t.type === 'color' && document.activeElement === t)) {
-        panel.classList.remove('interacting');
-      }
-    });
+function closeLinkEditModal() {
+  linkEditModal.hidden = true;
+  currentlyEditingIndex = null;
+  lastFocusedElement?.focus();
+}
 
-    // 3) Dim on focusin of any input (bubbles)
-    panel.addEventListener('focusin', e => {
-      const t = e.target;
-      if (t.tagName === 'INPUT' && t.type !== 'checkbox') {
-        panel.classList.add('interacting');
-      }
-    });
-
-    // 4) Undim on focusout of any input
-    panel.addEventListener('focusout', e => {
-      const t = e.target;
-      if (t.tagName === 'INPUT' && t.type !== 'checkbox') {
-        panel.classList.remove('interacting');
-      }
-    });
-
-    // 5) Color‐picker “change” always clears dim
-    panel.querySelectorAll('input[type="color"]').forEach(col => {
-      col.addEventListener('change', () => {
-        panel.classList.remove('interacting');
-      });
-    });
+function trapFocus(container, event) {
+  const focusable = Array.from(container.querySelectorAll(
+    'button:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+  )).filter(element => !element.hidden && element.offsetParent !== null);
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
   }
-  enablePanelDimmingOnInteract(); */
+}
 
+function setupEventListeners() {
   // — CLOCK SETTINGS —
-  elClock.addEventListener("dblclick", () => {
-    loadSettingsToForm();
-    document.dispatchEvent(new Event('settingsOpened'));
-    elSettingsPanel.hidden = false;
+  elClock.addEventListener("dblclick", openSettings);
+  elClock.addEventListener("keydown", event => {
+    if (["Enter", " "].includes(event.key)) {
+      event.preventDefault();
+      openSettings();
+    }
   });
   elClockFont.addEventListener("change", (e) => {
     const f = e.target.value;
+    ensureFontLoaded(f);
     elClockPreview.style.fontFamily = f;
     elClock.style.fontFamily = f;
   });
@@ -656,9 +727,7 @@ function setupEventListeners() {
   // — FALLBACK CLOCK DBLCLICK —
   document.body.addEventListener("dblclick", () => {
     if (!elClock.offsetParent && elSettingsPanel.hidden) {
-      loadSettingsToForm();
-      document.dispatchEvent(new Event('settingsOpened'));
-      elSettingsPanel.hidden = false;
+      openSettings();
     }
   });
 
@@ -690,12 +759,9 @@ function setupEventListeners() {
     URL.revokeObjectURL(currentWallpaperURL);
     currentWallpaperURL = URL.createObjectURL(file);
     document.body.style.backgroundImage = `url(${currentWallpaperURL})`;
-    const db = await initDB();
-    const tx = db.transaction("settings", "readwrite");
-    tx.objectStore("settings").put(file, "wallpaperBlob");
-    tx.oncomplete = () => db.close();
+    pendingWallpaper = file;
   });
-  elClearWallpaper.addEventListener("click", async () => {
+  elClearWallpaper.addEventListener("click", () => {
     if (currentWallpaperURL) {
       URL.revokeObjectURL(currentWallpaperURL);
       currentWallpaperURL = null;
@@ -703,26 +769,19 @@ function setupEventListeners() {
     document.body.style.backgroundImage = "";
     elWallpaperFile.value = "";
     elWallpaperFile.dataset.label = "Choose Wallpaper";
-    const db = await initDB();
-    const tx = db.transaction("settings", "readwrite");
-    tx.objectStore("settings").delete("wallpaperBlob");
-    tx.oncomplete = () => db.close();
+    pendingWallpaper = null;
   });
 
   // — SETTINGS BUTTONS —
   elSaveSettings.addEventListener("click", saveSettings);
-  elCancelSettings.addEventListener("click", () => {
-    applyStoredSettings();
-    elSettingsPanel.hidden = true;
-  });
+  elCancelSettings.addEventListener("click", cancelSettings);
   elResetSettings.addEventListener("click", resetSettings);
   elResetAll.addEventListener("click", resetAllSettings);
 
   // — LINK EDIT MODAL —
   document.getElementById("saveLinkEdit").addEventListener("click", saveLinkEdit);
   document.getElementById("cancelLinkEdit").addEventListener("click", () => {
-    linkEditModal.hidden = true;
-    currentlyEditingIndex = null;
+    closeLinkEditModal();
   });
   document.getElementById("removeLink").addEventListener("click", removeCurrentLink);
 
@@ -756,7 +815,7 @@ function setupEventListeners() {
 
   // — SEARCH ENGINE SELECTOR —
   elSearchEngine.addEventListener("change", (e) => {
-    saveSearchEngine(e.target.value);
+    applySearchEngine(e.target.value);
   });
 
   // — SETTINGS PANEL TABS —
@@ -764,7 +823,9 @@ function setupEventListeners() {
     button.addEventListener("click", () => {
       document.querySelectorAll(".tab-button").forEach(btn => btn.classList.remove("active"));
       document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
+      document.querySelectorAll(".tab-button").forEach(btn => btn.setAttribute('aria-selected', 'false'));
       button.classList.add("active");
+      button.setAttribute('aria-selected', 'true');
       document.getElementById(`${button.getAttribute("data-tab")}-tab`).classList.add("active");
     });
   });
@@ -800,9 +861,22 @@ function setupEventListeners() {
       if (suggestionsVisible) {
         hideSuggestions();
         elSearchInput.focus();
+      } else if (!linkEditModal.hidden) {
+        closeLinkEditModal();
+      } else if (!elSettingsPanel.hidden) {
+        cancelSettings();
       }
       return;
     }
+    if (e.key === "Tab" && !linkEditModal.hidden) {
+      trapFocus(linkEditModal, e);
+      return;
+    }
+    if (e.key === "Tab" && !elSettingsPanel.hidden) {
+      trapFocus(elSettingsPanel, e);
+      return;
+    }
+    if (!linkEditModal.hidden || !elSettingsPanel.hidden) return;
     if (suggestionsVisible && ["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) {
       handleSuggestionNavigation(e);
       e.preventDefault();
@@ -812,6 +886,7 @@ function setupEventListeners() {
       e.preventDefault();
       return;
     }
+    if (e.target.matches("input, select, textarea, button")) return;
     const cols = parseInt(document.getElementById("cols").value) || 8;
     const rows = parseInt(document.getElementById("rows").value) || 2;
     const x = focusedTileIndex % cols;
@@ -837,8 +912,7 @@ function setupEventListeners() {
 // ==========================
 
 function setFocus() {
-  const storedSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || defaults;
-  const focusTarget = storedSettings.focus?.target || defaults.focus.target;
+  const focusTarget = getSettings().focus.target;
   // If focusTarget is "searchbar" and we're NOT already redirected
   if (focusTarget === 'searchbar' && !location.search.includes('focus=1')) {
     location.href = 'index.html?focus=1';  // add a query to mark that we've redirected
@@ -862,7 +936,7 @@ async function getFavicon(link, providerOverride = null) {
         return `https://www.google.com/s2/favicons?sz=64&domain=${hostname}`;
     }
   } catch (e) {
-    return `Error getting favicon of ${hostname}`;
+    return "favicon.png";
   }
 }
 function applyInterface({ showClock, showSearch, showLinks, showLinkLabels, showBookmarks }) {
@@ -874,22 +948,23 @@ function applyInterface({ showClock, showSearch, showLinks, showLinkLabels, show
     lbl.style.display = showLinkLabels ? "" : "none";
   });
 }
+function colorToRgba(value) {
+  const probe = document.createElement('span');
+  probe.style.color = value;
+  probe.hidden = true;
+  document.body.appendChild(probe);
+  const computed = getComputedStyle(probe).color;
+  probe.remove();
+  const parts = computed.match(/[\d.]+/g)?.map(Number) || [0, 0, 0, 1];
+  return { r: parts[0] || 0, g: parts[1] || 0, b: parts[2] || 0, a: parts[3] ?? 1 };
+}
 function rgbToHex(rgbValue) {
-  let rgb = rgbValue.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/i);
-  if (!rgb) {
-    const rgba = rgbValue.match(/^rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)$/i);
-    if (!rgba) {
-      return rgbValue;
-    }
-    rgb = [rgba[0], rgba[1], rgba[2], rgba[3]];
-  }
-
+  const { r, g, b } = colorToRgba(rgbValue);
   const hex = (x) => {
-    const hex = parseInt(x).toString(16);
+    const hex = Math.round(x).toString(16);
     return hex.length === 1 ? '0' + hex : hex;
   };
-
-  return '#' + hex(rgb[1]) + hex(rgb[2]) + hex(rgb[3]);
+  return '#' + hex(r) + hex(g) + hex(b);
 }
 function hexToRgb(hex) {
   const h = hex.replace(/^#?([a-f\d])([a-f\d])([a-f\d])$/i,
@@ -907,68 +982,42 @@ function hexToRgb(hex) {
 // 🔤 FONT LOADING
 // ==========================
 
+function ensureFontLoaded(cssValue) {
+  const font = fontCatalog.find(item => item.css === cssValue);
+  const alreadyLoaded = Array.from(document.querySelectorAll('link[data-font-url]'))
+    .some(link => link.dataset.fontUrl === font?.importUrl);
+  if (!font?.importUrl || alreadyLoaded) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = font.importUrl;
+  link.dataset.fontUrl = font.importUrl;
+  document.head.appendChild(link);
+}
+
 async function loadFonts() {
-  const fonts = await fetch(chrome.runtime.getURL("fonts.json")).then(r => r.json());
   const sel = document.getElementById("clockFont");
-  sel.innerHTML = "";
+  try {
+    const fontsUrl = extensionApi?.runtime?.getURL?.("fonts.json") || "fonts.json";
+    const response = await fetch(fontsUrl);
+    if (!response.ok) throw new Error(`Font catalog returned ${response.status}`);
+    fontCatalog = await response.json();
+    if (!Array.isArray(fontCatalog)) throw new Error("Font catalog is invalid");
 
-  // Get the currently selected font from settings
-  const settings = getSettings();
-  const currentFont = settings.clock?.font || defaults.clock.font;
-
-  // Find the current font in our fonts list
-  const currentFontData = fonts.find(f => f.css === currentFont);
-
-  // Load only the current font immediately
-  if (currentFontData && currentFontData.importUrl) {
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = currentFontData.importUrl;
-    document.head.appendChild(link);
-
-    // Add it to the dropdown
-    const opt = document.createElement("option");
-    opt.value = currentFontData.css;
-    opt.textContent = currentFontData.label;
-    opt.style.fontFamily = currentFontData.css;
-    sel.appendChild(opt);
-  }
-
-  // Add all other fonts to dropdown but don't load them yet
-  fonts.forEach(f => {
-    if (f.css !== currentFont) {
-      const opt = document.createElement("option");
-      opt.value = f.css;
-      opt.textContent = f.label;
-      opt.style.fontFamily = f.css;
-      sel.appendChild(opt);
-    }
-  });
-
-  // Load remaining fonts when settings panel is opened
-  const loadRemainingFonts = () => {
-    fonts.forEach(f => {
-      if (f.css !== currentFont && f.importUrl) {
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = f.importUrl;
-        document.head.appendChild(link);
-      }
-    });
-    // Remove this listener after first run
-    document.removeEventListener('settingsOpened', loadRemainingFonts);
-  };
-
-  // Listen for settings panel opening
-  document.addEventListener('settingsOpened', loadRemainingFonts);
-
-  // Mark fonts as loaded
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => {
-      document.documentElement.classList.add("fonts-loaded");
-    });
-  } else {
-    document.documentElement.classList.add("fonts-loaded");
+    const currentFont = getSettings().clock.font;
+    sel.replaceChildren(...fontCatalog.map(font => {
+      const option = document.createElement("option");
+      option.value = font.css;
+      option.textContent = font.label;
+      return option;
+    }));
+    sel.value = currentFont;
+    ensureFontLoaded(currentFont);
+  } catch (error) {
+    console.warn("Could not load the optional font catalog:", error);
+    const option = document.createElement("option");
+    option.value = defaults.clock.font;
+    option.textContent = "System Default";
+    sel.replaceChildren(option);
   }
 }
 
@@ -999,11 +1048,12 @@ function updateClock() {
 function applyClockStyles() {
   const clock = document.getElementById("clock");
   const preview = document.getElementById("clockPreview");
-  const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+  const stored = getSettings();
 
   // 1) Font & size
-  const font = stored.clock?.font || defaults.clock.font;
-  const size = stored.clock?.size || defaults.clock.size;
+  const font = stored.clock.font;
+  const size = stored.clock.size;
+  ensureFontLoaded(font);
   clock.style.fontFamily = font;
   clock.style.fontSize = `${size}rem`;
   if (preview) {
@@ -1011,13 +1061,12 @@ function applyClockStyles() {
     preview.style.fontSize = `${size}rem`;
   }
 
-  // 2) Color
-  const color = stored.colors?.clockColor || defaults.colors.clockColor;
-  clock.style.color = color;
-  if (preview) preview.style.color = color;
+  // Color comes from the active theme or Morph controls.
+  clock.style.removeProperty("color");
+  if (preview) preview.style.color = getComputedStyle(document.documentElement).getPropertyValue("--clockColor");
 
   // 3) Spacing (margin)
-  const margin = stored.clock?.margin ?? defaults.clock.margin;
+  const margin = stored.clock.margin;
   clock.style.marginBottom = `${margin}px`;
   if (preview) preview.style.marginBottom = "";
 }
@@ -1026,19 +1075,16 @@ function applyClockStyles() {
 // 🔍 SEARCH ENGINE SETUP
 // ==========================
 
-function loadSearchEngine() {
-  const engine = localStorage.getItem(SEARCH_ENGINE_KEY) || "duckduckgo";
+function applySearchEngine(engine) {
+  if (!searchEngines[engine]) engine = defaults.more.searchEngine;
   const currentEngine = searchEngines[engine];
 
   searchForm.action = currentEngine.url;
+  searchInput.name = currentEngine.queryParam || "q";
   searchInput.placeholder = `Search with ${currentEngine.name}...`;
   searchEngineIcon.src = currentEngine.icon;
 
   document.getElementById("searchEngine").value = engine;
-}
-function saveSearchEngine(engine) {
-  localStorage.setItem(SEARCH_ENGINE_KEY, engine);
-  loadSearchEngine();
 }
 
 
@@ -1048,9 +1094,9 @@ function saveSearchEngine(engine) {
 // ==========================
 
 async function fetchAndRenderBookmarks() {
-  if (!chrome.bookmarks || !chrome.bookmarks.getTree) return;
+  if (!extensionApi?.bookmarks?.getTree) return;
   // wrap callback API in a Promise
-  const tree = await new Promise(resolve => chrome.bookmarks.getTree(resolve));
+  const tree = await new Promise(resolve => extensionApi.bookmarks.getTree(resolve));
   const barNode = findBarNode(tree);
   const container = document.getElementById("bookmarkBar");
   container.innerHTML = "";
@@ -1064,14 +1110,17 @@ async function fetchAndRenderBookmarks() {
 function makeBookmarkNode(node) {
   // If it's a bookmark URL:
   if (node.url) {
+    const safeUrl = normalizeHttpUrl(node.url);
+    if (!safeUrl) return document.createDocumentFragment();
     const a = document.createElement("a");
     a.className = "bookmark-item";
-    a.href = node.url;
+    a.href = safeUrl;
     a.target = "_blank";
+    a.rel = "noopener noreferrer";
 
     // Favicon
     const img = document.createElement("img");
-    const host = new URL(node.url).hostname;
+    const host = new URL(safeUrl).hostname;
     img.src = `https://icons.duckduckgo.com/ip3/${host}.ico`;
     img.alt = "";
     a.appendChild(img);
@@ -1087,10 +1136,14 @@ function makeBookmarkNode(node) {
   } else if (Array.isArray(node.children)) {
     const div = document.createElement("div");
     div.className = "bookmark-folder";
+    div.tabIndex = 0;
+    div.setAttribute("role", "button");
+    div.setAttribute("aria-haspopup", "menu");
+    div.setAttribute("aria-label", node.title || "Bookmark folder");
 
     // Folder icon
     const icon = document.createElement("img");
-    icon.src = chrome.runtime.getURL("folder.png");
+    icon.src = extensionApi?.runtime?.getURL?.("folder.png") || "folder.png";
     icon.alt = "";
     icon.className = "folder-icon";
     div.appendChild(icon);
@@ -1103,6 +1156,7 @@ function makeBookmarkNode(node) {
     // Child container
     const childContainer = document.createElement("div");
     childContainer.className = "folder-children";
+    childContainer.setAttribute("role", "menu");
     node.children.forEach(child => {
       childContainer.appendChild(makeBookmarkNode(child));
     });
@@ -1116,7 +1170,7 @@ function makeBookmarkNode(node) {
 }
 function findBarNode(nodes) {
   for (const n of nodes) {
-    if (n.id === "1") return n;
+    if (n.id === "1" || /bookmarks (bar|toolbar)/i.test(n.title || "")) return n;
     if (Array.isArray(n.children)) {
       const found = findBarNode(n.children);
       if (found) return found;
@@ -1130,7 +1184,7 @@ function findBarNode(nodes) {
 // ==========================
 
 function exportTheme() {
-  const settings = getSettings();
+  const settings = settingsPanel.hidden ? getSettings() : settingsFromForm();
   const fullMorph = {};
   morphDefs.forEach(def => {
     const key = morphKey(def);
@@ -1161,9 +1215,9 @@ function importTheme(file) {
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const imported = JSON.parse(e.target.result);
-
+      const imported = sanitizeSettings(JSON.parse(e.target.result));
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(imported));
+      localStorage.removeItem(SEARCH_ENGINE_KEY);
       applyStoredSettings();
       alert("Theme imported and applied!");
     } catch (err) {
@@ -1175,40 +1229,19 @@ function importTheme(file) {
 }
 
 function onThemeChange(name) {
-  applyTheme(name);
-
-  const themeMorph = (themes[name] || {}).morph || {};
-  morphDefs.forEach(def => {
-    const key = morphKey(def);
-    const val = (themeMorph[key] != null) ? themeMorph[key] : def.default;
-    applyStyle(def, val);
-    // mirror into UI controls:
-    if (def.type === 'range') {
-      const inp = document.querySelector(`input[type=range][data-morph-key="${key}"]`);
-      const vs = inp && inp.nextElementSibling;
-      if (inp) inp.value = parseFloat(val);
-      if (vs) vs.textContent = val;
-    } else {
-      const col = document.querySelector(`input[type=color][data-morph-key="${key}"]`);
-      const alpha = document.querySelector(`input[type=range][data-morph-key="${key}"]`);
-      if (col && alpha) {
-        const m = val.match(/rgba?\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
-        if (m) {
-          col.value = rgbToHex(`rgb(${m[1]},${m[2]},${m[3]})`);
-          alpha.value = Math.round(parseFloat(m[4]) * 100);
-          alpha.nextElementSibling.textContent = `${alpha.value}%`;
-        }
-      }
-    }
-  });
+  clearMorphStyles();
+  applyTheme(name, true);
+  initMorphDefs();
+  buildMorphControls({});
 }
 
-function applyTheme(id) {
+function applyTheme(id, useClockPreset = false) {
   const t = themes[id] || themes.default;
+  const variableNames = { inputGlow: "input-glow", clockColor: "clockColor" };
 
   // 1) Apply all CSS vars for colors
   Object.entries(t.colors).forEach(([k, v]) => {
-    document.documentElement.style.setProperty(`--${k}`, v);
+    document.documentElement.style.setProperty(`--${variableNames[k] || k}`, v);
   });
 
   // 2) Sync the inputs
@@ -1218,13 +1251,18 @@ function applyTheme(id) {
     if (inp) inp.value = v;
   });
 
-  // 3) Apply clock settings
-  document.getElementById("clockFont").value = t.clock.font;
-  document.getElementById("clockSize").value = t.clock.size;
-  document.getElementById("clockSizeValue").textContent = t.clock.size;
-  document.getElementById("clockMargin").value = t.clock.margin;
-  document.getElementById("clockMarginValue").textContent = t.clock.margin;
-  applyClockStyles();
+  if (useClockPreset) {
+    document.getElementById("clockFont").value = t.clock.font;
+    document.getElementById("clockSize").value = t.clock.size;
+    document.getElementById("clockSizeValue").textContent = t.clock.size;
+    document.getElementById("clockMargin").value = t.clock.margin;
+    document.getElementById("clockMarginValue").textContent = t.clock.margin;
+    ensureFontLoaded(t.clock.font);
+    elClock.style.fontFamily = t.clock.font;
+    elClock.style.fontSize = `${t.clock.size}rem`;
+    elClock.style.marginBottom = `${t.clock.margin}px`;
+    elClockPreview.style.color = t.colors.clockColor;
+  }
 }
 
 // ==========================
@@ -1232,9 +1270,10 @@ function applyTheme(id) {
 // ==========================
 
 function showLinkEditModal(index) {
+  lastFocusedElement = document.activeElement;
   currentlyEditingIndex = index;
   const links = loadLinks();
-  const link = links[index];
+  const link = links[index] || { url: "", title: "" };
 
   document.getElementById("editUrl").value = link.url || "";
   document.getElementById("editTitle").value = link.title || "";
@@ -1248,6 +1287,7 @@ function showLinkEditModal(index) {
   }
 
   linkEditModal.hidden = false;
+  document.getElementById("editUrl").focus();
 }
 function saveLinkEdit() {
   const links = loadLinks();
@@ -1256,11 +1296,11 @@ function saveLinkEdit() {
   const faviconProvider = document.getElementById("faviconProvider").value;
 
   if (url) {
-    let fullUrl = url;
-    if (!/^https?:\/\//i.test(fullUrl)) {
-      fullUrl = "https://" + fullUrl;
+    const fullUrl = normalizeHttpUrl(url);
+    if (!fullUrl) {
+      alert("Please enter a valid http or https URL.");
+      return;
     }
-
     links[currentlyEditingIndex] = {
       url: fullUrl,
       title: title || fullUrl,
@@ -1271,23 +1311,45 @@ function saveLinkEdit() {
     renderGrid();
   }
 
-  linkEditModal.hidden = true;
-  currentlyEditingIndex = null;
+  closeLinkEditModal();
 }
 function removeCurrentLink() {
   const links = loadLinks();
   links[currentlyEditingIndex] = { url: "", title: "" };
   saveLinks(links);
   renderGrid();
-  linkEditModal.hidden = true;
-  currentlyEditingIndex = null;
+  closeLinkEditModal();
+}
+function normalizeHttpUrl(value) {
+  try {
+    const candidate = /^[a-z][a-z\d+.-]*:/i.test(value) ? value : `https://${value}`;
+    const url = new URL(candidate);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+function normalizeLink(link) {
+  if (!link || typeof link !== "object" || !link.url) return { url: "", title: "" };
+  const url = normalizeHttpUrl(String(link.url));
+  if (!url) return { url: "", title: "" };
+  const providers = ["google", "duckduckgo", "direct"];
+  return {
+    url,
+    title: String(link.title || url).slice(0, 200),
+    faviconProvider: providers.includes(link.faviconProvider) ? link.faviconProvider : defaults.faviconProvider
+  };
 }
 function loadLinks() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  return saved ? JSON.parse(saved) : Array(TOTAL_TILES).fill({ url: "", title: "" });
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return Array.isArray(saved) ? saved.slice(0, 200).map(normalizeLink) : [];
+  } catch {
+    return [];
+  }
 }
 function saveLinks(links) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(links));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(links.slice(0, 200).map(normalizeLink)));
 }
 function exportLinks() {
   const links = loadLinks();
@@ -1308,8 +1370,8 @@ function importLinks(file) {
   reader.onload = (e) => {
     try {
       const links = JSON.parse(e.target.result);
-      if (Array.isArray(links)) {
-        saveLinks(links);
+      if (Array.isArray(links) && links.length <= 200) {
+        saveLinks(links.map(normalizeLink));
         renderGrid();
         alert("Links imported successfully!");
       } else {
@@ -1327,21 +1389,58 @@ function importLinks(file) {
 // ==========================
 
 function getSettings() {
-  const raw = localStorage.getItem(SETTINGS_KEY);
-  const saved = raw ? JSON.parse(raw) : {};
+  let saved = {};
+  try {
+    saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+  } catch {
+    saved = {};
+  }
+  return sanitizeSettings(saved);
+}
+function sanitizeSettings(saved = {}) {
+  const clamp = (value, min, max, fallback) => {
+    const number = Number(value);
+    return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
+  };
+  const bool = (value, fallback) => typeof value === "boolean" ? value : fallback;
+  const legacyEngine = localStorage.getItem(SEARCH_ENGINE_KEY);
+  const searchEngine = saved.more?.searchEngine || legacyEngine || defaults.more.searchEngine;
+  const morph = saved.morph && typeof saved.morph === "object"
+    ? Object.fromEntries(Object.entries(saved.morph)
+      .filter(([key, value]) => key.length < 150 && typeof value === "string" && value.length < 150))
+    : {};
 
   return {
-    grid: { ...defaults.grid, ...(saved.grid || {}) },
-    clock: { ...defaults.clock, ...(saved.clock || {}) },
-    interface: { ...defaults.interface, ...(saved.interface || {}) },
-    focus: { ...defaults.focus, ...(saved.focus || {}) },
-    theme: saved.theme || defaults.theme,
-    morph: saved.morph || {},
-    more: { ...defaults.more, ...(saved.more || {}) }
+    grid: {
+      cols: Math.round(clamp(saved.grid?.cols, 1, 8, defaults.grid.cols)),
+      rows: Math.round(clamp(saved.grid?.rows, 1, 5, defaults.grid.rows))
+    },
+    clock: {
+      font: typeof saved.clock?.font === "string" && saved.clock.font.trim() && saved.clock.font.length < 150 ? saved.clock.font : defaults.clock.font,
+      size: clamp(saved.clock?.size, 2, 10, defaults.clock.size),
+      margin: Math.round(clamp(saved.clock?.margin, 0, 400, defaults.clock.margin))
+    },
+    interface: {
+      showClock: bool(saved.interface?.showClock, defaults.interface.showClock),
+      showSearch: bool(saved.interface?.showSearch, defaults.interface.showSearch),
+      showLinks: bool(saved.interface?.showLinks, defaults.interface.showLinks),
+      showLinkLabels: bool(saved.interface?.showLinkLabels, defaults.interface.showLinkLabels),
+      showBookmarks: bool(saved.interface?.showBookmarks, defaults.interface.showBookmarks)
+    },
+    focus: {
+      target: ["addressbar", "searchbar"].includes(saved.focus?.target) ? saved.focus.target : defaults.focus.target
+    },
+    theme: Object.hasOwn(themes, saved.theme) ? saved.theme : defaults.theme,
+    morph,
+    more: {
+      middleClickBackground: bool(saved.more?.middleClickBackground, defaults.more.middleClickBackground),
+      searchEngine: Object.hasOwn(searchEngines, searchEngine) ? searchEngine : defaults.more.searchEngine
+    }
   };
 }
 function applyStoredSettings() {
   const settings = getSettings();
+  clearMorphStyles();
 
   // Theme
   const themeEl = document.getElementById("themeSelector");
@@ -1393,10 +1492,15 @@ function applyStoredSettings() {
   // Focus target
   const focusEl = document.getElementById("focusTarget");
   if (focusEl) focusEl.value = settings.focus.target;
+
+  applySearchEngine(settings.more.searchEngine);
+  initMorphDefs();
+  buildMorphControls();
+  applyMorphSettings(settings);
 }
 
-function saveSettings() {
-  const settings = {
+function settingsFromForm() {
+  return sanitizeSettings({
     grid: {
       cols: parseInt(document.getElementById("cols").value, 10),
       rows: parseInt(document.getElementById("rows").value, 10)
@@ -1420,78 +1524,60 @@ function saveSettings() {
 
     morph: collectMorphSettings(),
     more: {
-      middleClickBackground: document.getElementById("middleClickBackground").checked
+      middleClickBackground: document.getElementById("middleClickBackground").checked,
+      searchEngine: document.getElementById("searchEngine").value
     }
-  };
+  });
+}
 
+async function saveSettings() {
+  const settings = settingsFromForm();
+  try {
+    await commitPendingWallpaper();
+  } catch (error) {
+    console.error("Wallpaper could not be saved:", error);
+    alert("The wallpaper could not be saved. Your other settings have not been changed.");
+    return;
+  }
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  localStorage.removeItem(SEARCH_ENGINE_KEY);
+  localStorage.removeItem('morphSettings');
   applyStoredSettings();
   settingsPanel.hidden = true;
+  lastFocusedElement?.focus();
 }
 
 function loadSettingsToForm() {
-  const settings = getSettings();
-
-  // Grid
-  document.getElementById("cols").value = settings.grid.cols;
-  document.getElementById("rows").value = settings.grid.rows;
-  applyGridLayout(settings.grid.cols, settings.grid.rows);
-
-  // Clock
-  document.getElementById("clockFont").value = settings.clock.font;
-  document.getElementById("clockSize").value = settings.clock.size;
-  document.getElementById("clockSizeValue").textContent = settings.clock.size;
-  document.getElementById("clockMargin").value = settings.clock.margin;
-  document.getElementById("clockMarginValue").textContent = settings.clock.margin;
-  applyClockStyles();
-
-  // Interface toggles
-  const iface = settings.interface;
-  document.getElementById("toggleClock").checked = iface.showClock;
-  document.getElementById("toggleSearch").checked = iface.showSearch;
-  document.getElementById("toggleLinks").checked = iface.showLinks;
-  document.getElementById("toggleLinkLabels").checked = iface.showLinkLabels;
-  document.getElementById("toggleBookmarks").checked = iface.showBookmarks;
-  applyInterface(iface);
-
-  // Focus target
-  document.getElementById("focusTarget").value = settings.focus.target;
-
-  // Theme
-  if (settings.theme) {
-    document.getElementById("themeSelector").value = settings.theme;
-  }
-}
-
-
-function resetSettings() {
-  if (!confirm("Are you sure you want to reset Appearance (including all morphs)?")) return;
-
-  const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
-
-  delete settings.morph;
-
-  settings.theme = 'default';
-
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-
   applyStoredSettings();
-
-  settingsPanel.hidden = true;
 }
 
-function resetAllSettings() {
-  if (!confirm("Are you sure you want to reset ALL settings and links?")) return;
-
-  localStorage.clear();
-  resetSettings();
-
-  applyGridLayout(defaults.grid.cols, defaults.grid.rows);
-  renderGrid();
-  loadSearchEngine();
-  applyInterface(defaults.interface);
-  saveSettings();
+async function resetSettings() {
+  if (!confirm("Reset settings to defaults? Your links and wallpaper will be kept.")) return;
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(defaults));
+  localStorage.removeItem(SEARCH_ENGINE_KEY);
+  localStorage.removeItem('morphSettings');
+  pendingWallpaper = undefined;
+  await restoreSavedWallpaper();
+  applyStoredSettings();
   settingsPanel.hidden = true;
+  lastFocusedElement?.focus();
+  alert("Settings have been reset to defaults.");
+}
+
+async function resetAllSettings() {
+  if (!confirm("Reset all settings, links, and the saved wallpaper? This cannot be undone.")) return;
+  [SETTINGS_KEY, STORAGE_KEY, SEARCH_ENGINE_KEY, FAVICON_PROVIDER_KEY, 'morphSettings']
+    .forEach(key => localStorage.removeItem(key));
+  pendingWallpaper = null;
+  try {
+    await commitPendingWallpaper();
+  } catch (error) {
+    console.warn("Saved wallpaper could not be cleared:", error);
+  }
+  clearMorphStyles();
+  applyStoredSettings();
+  settingsPanel.hidden = true;
+  lastFocusedElement?.focus();
   alert("All settings have been reset to defaults");
 }
 
@@ -1500,30 +1586,23 @@ function resetAllSettings() {
 // ==========================
 
 function applyGridLayout(cols, rows) {
-  grid.style.gridTemplateColumns = `repeat(${cols}, 96px)`;
+  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(72px, 96px))`;
   grid.style.gridTemplateRows = `repeat(${rows}, 127.2px)`;
   TOTAL_TILES = cols * rows;
-
-  // Resize link array
-  let links = loadLinks();
-  if (links.length < TOTAL_TILES) {
-    const diff = TOTAL_TILES - links.length;
-    links = links.concat(Array(diff).fill({ url: "", title: "" }));
-  } else if (links.length > TOTAL_TILES) {
-    links = links.slice(0, TOTAL_TILES);
-  }
-  saveLinks(links);
   renderGrid();
 }
 function renderGrid() {
-  const links = loadLinks();
+  const savedLinks = loadLinks();
+  const links = Array.from({ length: TOTAL_TILES }, (_, index) => savedLinks[index] || { url: "", title: "" });
   const frag = document.createDocumentFragment();
 
   links.forEach((item, i) => {
     const wrapper = document.createElement("div");
     wrapper.className = "link-wrapper";
-    wrapper.tabIndex = 1;
+    wrapper.tabIndex = 0;
     wrapper.setAttribute("draggable", true);
+    wrapper.setAttribute("role", item.url ? "link" : "button");
+    wrapper.setAttribute("aria-label", item.url ? `${item.title || item.url}. Right-click to edit.` : "Add favorite link");
 
     const tile = document.createElement("div");
     tile.className = "link-tile";
@@ -1536,8 +1615,11 @@ function renderGrid() {
       getFavicon(item.url, item.faviconProvider).then((faviconUrl) => {
         img.src = faviconUrl;
       });
+      img.addEventListener("error", () => {
+        img.src = "favicon.png";
+      }, { once: true });
 
-      img.alt = "favicon";
+      img.alt = "";
       img.draggable = false;
       img.style.pointerEvents = "none";
       tile.appendChild(img);
@@ -1554,10 +1636,11 @@ function renderGrid() {
         if (e.button === 1) {
           e.preventDefault();
           const openInBg = document.getElementById("middleClickBackground").checked;
-          chrome.tabs.create({
-            url: item.url,
-            active: !openInBg
-          });
+          if (extensionApi?.tabs?.create) {
+            extensionApi.tabs.create({ url: item.url, active: !openInBg });
+          } else {
+            window.open(item.url, "_blank");
+          }
           return;
         }
 
@@ -1599,10 +1682,6 @@ function renderGrid() {
         isDragging = false;
       });
 
-      tile.oncontextmenu = (e) => {
-        e.preventDefault();
-        showLinkEditModal(i);
-      };
     } else {
       tile.textContent = "+";
       tile.style.fontSize = "1.5rem";
@@ -1610,6 +1689,11 @@ function renderGrid() {
         showLinkEditModal(i);
       };
     }
+
+    wrapper.addEventListener("contextmenu", event => {
+      event.preventDefault();
+      showLinkEditModal(i);
+    });
 
     // Drag events
     wrapper.addEventListener("dragstart", (e) => {
@@ -1675,6 +1759,7 @@ function renderGrid() {
       const sourceIndex = parseInt(e.dataTransfer.getData("text/plain"));
       if (sourceIndex !== i) {
         const links = loadLinks();
+        while (links.length < TOTAL_TILES) links.push({ url: "", title: "" });
         const tmp = links[sourceIndex];
         links[sourceIndex] = links[i];
         links[i] = tmp;
@@ -1710,8 +1795,11 @@ function renderGrid() {
 
     // Enter key support
     wrapper.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && item.url) {
-        window.open(item.url, "_self");
+      if (e.key === "Enter") {
+        item.url ? window.open(item.url, "_self") : showLinkEditModal(i);
+      } else if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) {
+        e.preventDefault();
+        showLinkEditModal(i);
       }
     });
 
@@ -1723,9 +1811,6 @@ function renderGrid() {
   grid.innerHTML = "";
   grid.appendChild(frag);
 
-  initMorphDefs();
-  buildMorphControls();
-  applyMorphSettings(getSettings());
   applyInterface(getSettings().interface);
 }
 
@@ -1734,18 +1819,46 @@ function renderGrid() {
 // ==========================
 
 async function loadSavedWallpaper(db) {
-  const tx = db.transaction("settings", "readonly");
-  const store = tx.objectStore("settings");
-  const req = store.get("wallpaperBlob");
-  req.onsuccess = () => {
-    const blob = req.result;
-    if (blob) {
-      currentWallpaperURL = URL.createObjectURL(blob);
-      document.body.style.backgroundImage = `url(${currentWallpaperURL})`;
-    }
-  };
-  await tx.complete;
+  const blob = await new Promise((resolve, reject) => {
+    const request = db.transaction("settings", "readonly").objectStore("settings").get("wallpaperBlob");
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  });
+  if (currentWallpaperURL) URL.revokeObjectURL(currentWallpaperURL);
+  currentWallpaperURL = blob ? URL.createObjectURL(blob) : null;
+  document.body.style.backgroundImage = currentWallpaperURL ? `url(${currentWallpaperURL})` : "";
   db.close();
+}
+
+async function restoreSavedWallpaper() {
+  try {
+    await loadSavedWallpaper(await initDB());
+  } catch (error) {
+    console.warn("Could not restore wallpaper:", error);
+  }
+}
+
+async function commitPendingWallpaper() {
+  if (pendingWallpaper === undefined) return;
+  const wallpaper = pendingWallpaper;
+  const db = await initDB();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction("settings", "readwrite");
+    const store = tx.objectStore("settings");
+    wallpaper === null
+      ? store.delete("wallpaperBlob")
+      : store.put(wallpaper, "wallpaperBlob");
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+  db.close();
+  if (wallpaper === null) {
+    if (currentWallpaperURL) URL.revokeObjectURL(currentWallpaperURL);
+    currentWallpaperURL = null;
+    document.body.style.backgroundImage = "";
+  }
+  pendingWallpaper = undefined;
 }
 
 // ==========================
@@ -1764,11 +1877,13 @@ function showSuggestions() {
   const suggestions = document.getElementById("searchSuggestions");
   if (searchInput.value.trim() && suggestions.children.length > 0) {
     suggestions.classList.add("visible");
+    searchInput.setAttribute("aria-expanded", "true");
   }
 }
 function hideSuggestions() {
   lastSuggestionQuery = "";
   document.getElementById("searchSuggestions").classList.remove("visible");
+  searchInput.setAttribute("aria-expanded", "false");
 }
 async function fetchSuggestions(query) {
   if (query === lastSuggestionQuery) return;
@@ -1777,15 +1892,15 @@ async function fetchSuggestions(query) {
   try {
     const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
     const [historyItems, topSites] = await Promise.all([
-      chrome.history
-        ? chrome.history.search({
+      extensionApi?.history?.search
+        ? extensionApi.history.search({
           text: query,
           startTime: twoWeeksAgo,
           maxResults: 10
         })
         : Promise.resolve([]),
-      chrome.topSites
-        ? chrome.topSites.get()
+      extensionApi?.topSites?.get
+        ? extensionApi.topSites.get()
         : Promise.resolve([])
     ]);
 
@@ -1793,8 +1908,11 @@ async function fetchSuggestions(query) {
       ? [...historyItems, ...topSites]
       : topSites;
 
-    // filter out entries without URLs
-    const validItems = allItems.filter(item => item.url);
+    // Keep navigation inside ordinary web URLs, even if history contains an
+    // unusual or imported scheme.
+    const validItems = allItems
+      .map(item => ({ ...item, url: normalizeHttpUrl(String(item.url || "")) }))
+      .filter(item => item.url);
 
     // dedupe by URL, favoring history items first
     const seen = new Set();
@@ -1829,8 +1947,8 @@ async function fetchSuggestions(query) {
   } catch (error) {
     console.error("Error fetching suggestions:", error);
     // fallback to topSites only
-    if (chrome.topSites) {
-      chrome.topSites.get().then(sites => {
+    if (extensionApi?.topSites?.get) {
+      extensionApi.topSites.get().then(sites => {
         displaySuggestions(sites.slice(0, 6));
       });
     }
@@ -1847,12 +1965,14 @@ function displaySuggestions(items) {
 
   items.forEach((item) => {
     try {
-      const url = new URL(item.url);
+      const safeUrl = normalizeHttpUrl(String(item.url || ""));
+      if (!safeUrl) return;
+      const url = new URL(safeUrl);
       const normalizedUrl = `${url.hostname}${url.pathname}`.toLowerCase();
 
       if (!seen.has(normalizedUrl)) {
         seen.set(normalizedUrl, true);
-        uniqueItems.push(item);
+        uniqueItems.push({ ...item, url: safeUrl });
       }
     } catch (e) {
       console.warn("Invalid URL in suggestions:", item.url);
@@ -1868,6 +1988,8 @@ function displaySuggestions(items) {
     const suggestion = document.createElement("div");
     suggestion.className = "suggestion-item";
     suggestion.dataset.url = item.url;
+    suggestion.setAttribute("role", "option");
+    suggestion.setAttribute("aria-selected", "false");
 
     const icon = document.createElement("img");
     icon.className = "suggestion-icon";
@@ -1876,7 +1998,7 @@ function displaySuggestions(items) {
     // Highlight matching text in the title
     const title = document.createElement("span");
     const titleText = item.title || item.url;
-    title.innerHTML = highlightMatches(titleText, query);
+    appendHighlightedText(title, titleText, query);
 
     // Display URL (without highlighting for cleaner look)
     const url = document.createElement("span");
@@ -1896,51 +2018,51 @@ function displaySuggestions(items) {
 
   showSuggestions();
 }
-function highlightMatches(text, query) {
-  if (!query || !text) return text;
-
+function appendHighlightedText(container, text, query) {
+  if (!query || !text) {
+    container.textContent = text || "";
+    return;
+  }
   const lowerText = text.toLowerCase();
   const lowerQuery = query.toLowerCase();
-  let result = "";
   let lastIndex = 0;
 
-  // Find all occurrences of the query in the text
-  for (let i = 0; i < text.length;) {
-    const matchIndex = lowerText.indexOf(lowerQuery, i);
+  while (lastIndex < text.length) {
+    const matchIndex = lowerText.indexOf(lowerQuery, lastIndex);
     if (matchIndex === -1) break;
-    result += text.substring(lastIndex, matchIndex);
-    // Add highlighted match
-    result += `<span class="highlight-match">${text.substring(matchIndex, matchIndex + query.length)}</span>`;
-
-    i = matchIndex + query.length;
-    lastIndex = i;
+    container.append(document.createTextNode(text.slice(lastIndex, matchIndex)));
+    const mark = document.createElement("span");
+    mark.className = "highlight-match";
+    mark.textContent = text.slice(matchIndex, matchIndex + query.length);
+    container.append(mark);
+    lastIndex = matchIndex + query.length;
   }
-
-  // Add remaining text
-  result += text.substring(lastIndex);
-
-  return result || text; // Fallback if no matches
+  container.append(document.createTextNode(text.slice(lastIndex)));
 }
 function handleSuggestionNavigation(e) {
   const suggestions = document.querySelectorAll(".suggestion-item");
+  if (!suggestions.length) return;
   let currentIndex = -1;
 
   suggestions.forEach((item, index) => {
     if (item.classList.contains("selected")) {
       currentIndex = index;
       item.classList.remove("selected");
+      item.setAttribute("aria-selected", "false");
     }
   });
 
   if (e.key === "ArrowDown") {
     currentIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % suggestions.length;
     suggestions[currentIndex].classList.add("selected");
+    suggestions[currentIndex].setAttribute("aria-selected", "true");
     suggestions[currentIndex].scrollIntoView({ block: "nearest" });
     e.preventDefault();
   } else if (e.key === "ArrowUp") {
     currentIndex =
       currentIndex === -1 ? suggestions.length - 1 : (currentIndex - 1 + suggestions.length) % suggestions.length;
     suggestions[currentIndex].classList.add("selected");
+    suggestions[currentIndex].setAttribute("aria-selected", "true");
     suggestions[currentIndex].scrollIntoView({ block: "nearest" });
     e.preventDefault();
   } else if (e.key === "Enter") {
@@ -1948,9 +2070,9 @@ function handleSuggestionNavigation(e) {
     if (currentIndex !== -1) {
       window.location.href = suggestions[currentIndex].dataset.url;
     } else if (query) {
-      const engineKey = localStorage.getItem(SEARCH_ENGINE_KEY) || "duckduckgo";
-      const engine = searchEngines[engineKey];
-      window.location.href = `${engine.url}?q=${encodeURIComponent(query)}`;
+      const engine = searchEngines[getSettings().more.searchEngine] || searchEngines.duckduckgo;
+      const parameter = engine.queryParam || "q";
+      window.location.href = `${engine.url}?${parameter}=${encodeURIComponent(query)}`;
     }
     e.preventDefault();
   }

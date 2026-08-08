@@ -3,11 +3,9 @@
 
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>New Tab</title>
-  <!-- Preconnect to speed up all subsequent font requests -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=0.9.1" />
   <link rel="icon" href="favicon.png" type="image/png" />
 </head>
 
@@ -15,31 +13,35 @@
 
 <body data-morph="bg-style[background-color color]">
   <!-- Bookmarks Bar Container -->
-  <div id="bookmarkBar" class="bookmark-bar"></div>
+  <nav id="bookmarkBar" class="bookmark-bar" aria-label="Bookmarks"></nav>
 
   <!-- MAIN CONTAINER -->
 
-  <div class="mainContainer">
+  <main class="mainContainer">
     <div class="container" id="container">
-      <div class="clock" id="clock" data-morph="
+      <div class="clock" id="clock" role="button" tabindex="0" aria-label="Open settings" title="Double-click to open settings" data-morph="
           sg-clock[color color,
-            text-shadow color from0to40 from0to40 from0to40,
+            clock-shadow-color color,
+            clock-shadow-x from-40to40 px,
+            clock-shadow-y from-40to40 px,
+            clock-shadow-blur from0to40 px,
             background-color color,
             border-radius from0to150 px,
             padding-bottom from0to100 px]"></div>
       <div class="search">
         <form id="searchForm" method="get">
           <div class="search-container">
-            <img id="searchEngineIcon" src="https://duckduckgo.com/favicon.ico" alt="Search" class="search-icon" />
+            <img id="searchEngineIcon" src="https://duckduckgo.com/favicon.ico" alt="" class="search-icon" />
             <input id="searchInput" type="text" name="q" placeholder=" Search with DuckDuckGo..." tabindex="0" autofocus
-              autocomplete="off" data-morph="
+              autocomplete="off" aria-label="Search the web or browsing history" aria-autocomplete="list"
+              aria-controls="searchSuggestions" aria-expanded="false" data-morph="
                 sb-style[background-color color, color color, border-radius from0to64 px, outline-width from0to8, outline-color color],
                 sb-inter[width from100to786 px]" />
-            <div id="searchSuggestions" class="search-suggestions"></div>
+            <div id="searchSuggestions" class="search-suggestions" role="listbox" aria-label="Search suggestions"></div>
           </div>
         </form>
       </div>
-      <div class="link-grid" id="linkGrid" data-morph="
+      <div class="link-grid" id="linkGrid" role="list" aria-label="Favorite links" data-morph="
             lg-inter[margin-top from0to200 px, row-gap from0to100 px, column-gap from0to100 px],
             lg-style[background-color color, border-radius from0to200 px],
             linkTile[
@@ -55,31 +57,30 @@
     </div>
 
     <!-- SETTINGS PANEL -->
-    <div id="settings" class="settings-panel" hidden>
-      <div class="resize-handle"></div>
-      <!--<div class="settings-header">
-        <div>Morph's NewTab Settings</div>
-      </div>-->
+    <div id="settings" class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
+      <div class="settings-header">
+        <h2 id="settingsTitle">Morph's NewTab Settings</h2>
+      </div>
       <div class="settings-sidebar">
-        <div class="settings-tabs">
-          <button class="tab-button active" data-tab="appearance">
-            <span class="tab-icon">🎨</span>
+        <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+          <button type="button" id="appearanceTab" class="tab-button active" data-tab="appearance" role="tab" aria-selected="true" aria-controls="appearance-tab">
+            <span class="tab-icon" aria-hidden="true">🎨</span>
             <span class="tab-label">Style</span>
           </button>
-          <button class="tab-button" data-tab="interface">
-            <span class="tab-icon">🛠️</span>
+          <button type="button" id="interfaceTab" class="tab-button" data-tab="interface" role="tab" aria-selected="false" aria-controls="interface-tab">
+            <span class="tab-icon" aria-hidden="true">🛠️</span>
             <span class="tab-label">Interface</span>
           </button>
-          <button class="tab-button" data-tab="clock">
-            <span class="tab-icon">🕒</span>
+          <button type="button" id="clockTab" class="tab-button" data-tab="clock" role="tab" aria-selected="false" aria-controls="clock-tab">
+            <span class="tab-icon" aria-hidden="true">🕒</span>
             <span class="tab-label">Clock</span>
           </button>
-          <button class="tab-button" data-tab="links">
-            <span class="tab-icon">🔗</span>
+          <button type="button" id="linksTab" class="tab-button" data-tab="links" role="tab" aria-selected="false" aria-controls="links-tab">
+            <span class="tab-icon" aria-hidden="true">🔗</span>
             <span class="tab-label">Links</span>
           </button>
-          <button class="tab-button" data-tab="advanced">
-            <span class="tab-icon">⚙️</span>
+          <button type="button" id="advancedTab" class="tab-button" data-tab="advanced" role="tab" aria-selected="false" aria-controls="advanced-tab">
+            <span class="tab-icon" aria-hidden="true">⚙️</span>
             <span class="tab-label">More</span>
           </button>
         </div>
@@ -89,7 +90,7 @@
         <div class="tabs-content-container">
 
           <!-- Interface Tab -->
-          <div id="interface-tab" class="tab-content">
+          <div id="interface-tab" class="tab-content" role="tabpanel" aria-labelledby="interfaceTab">
             <h3>Interface Options</h3>
             <div class="settings-group">
               <label>Show Clock<input type="checkbox" id="toggleClock" /></label>
@@ -115,7 +116,7 @@
 
           <!-- Clock Tab -->
 
-          <div id="clock-tab" class="tab-content">
+          <div id="clock-tab" class="tab-content" role="tabpanel" aria-labelledby="clockTab">
             <div class="settings-group">
               <div id="clockPreview">12:34</div>
             </div>
@@ -139,7 +140,7 @@
           </div>
 
           <!-- Appearance Tab -->
-          <div id="appearance-tab" class="tab-content active">
+          <div id="appearance-tab" class="tab-content active" role="tabpanel" aria-labelledby="appearanceTab">
             <!-- Theme selector -->
             <h3>Themes</h3>
             <div class="settings-group">
@@ -170,7 +171,7 @@
             </div>
             <div class="settings-group settings-group-buttons">
               <button id="clearWallpaper">Clear Wallpaper</button>
-              <input type="file" id="wallpaperFile" accept="image/*" />
+              <input type="file" id="wallpaperFile" accept="image/*" aria-label="Choose wallpaper" />
             </div>
             <!-- Color Customization -->
 
@@ -233,7 +234,7 @@
           </div>
 
           <!-- Links Tab -->
-          <div id="links-tab" class="tab-content">
+          <div id="links-tab" class="tab-content" role="tabpanel" aria-labelledby="linksTab">
             <div class="settings-group">
               <div>Right-click any icon to edit links</div>
               <div>Drag and drop to rearrange</div>
@@ -245,28 +246,28 @@
               <input type="file" id="importLinksFile" accept=".json" hidden />
             </div>
             <div class="settings-group">
-              <div style="font-weight:bold">Export your links before changing columns/rows!</div>
+              <div>Links outside a smaller grid are hidden, not deleted.</div>
               <div class="input-row">
                 <label for="cols">Columns:</label>
                 <div class="number-input">
-                  <button class="number-btn minus">-</button>
+                  <button type="button" class="number-btn minus" aria-label="Decrease columns">−</button>
                   <input type="number" id="cols" min="1" max="8" value="8" />
-                  <button class="number-btn plus">+</button>
+                  <button type="button" class="number-btn plus" aria-label="Increase columns">+</button>
                 </div>
               </div>
               <div class="input-row">
                 <label for="rows">Rows:</label>
                 <div class="number-input">
-                  <button class="number-btn minus">-</button>
+                  <button type="button" class="number-btn minus" aria-label="Decrease rows">−</button>
                   <input type="number" id="rows" min="1" max="5" value="2" />
-                  <button class="number-btn plus">+</button>
+                  <button type="button" class="number-btn plus" aria-label="Increase rows">+</button>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- More Tab -->
-          <div id="advanced-tab" class="tab-content">
+          <div id="advanced-tab" class="tab-content" role="tabpanel" aria-labelledby="advancedTab">
             <div class="settings-group">
               <label>
                 <div>What to focus on opening NewTab (Chromium based only):</div>
@@ -290,50 +291,38 @@
               </label>
             </div>
             <div class="settings-group settings-group-buttons">
-              <button id="resetAll">Reset All Settings And Links</button>
+              <button type="button" id="resetAll">Reset All Settings And Links</button>
             </div>
             <div class="social-links">
-              <a href="https://github.com/Morph-777/Morphs-NewTab" target="_blank" title="Morph's NewTab on GitHub">
+              <a href="https://github.com/Morph-777/Morphs-NewTab" target="_blank" rel="noopener noreferrer" title="Morph's NewTab on GitHub">
                 <img class="git" src="/github-mark-white.svg" alt="GitHub">
               </a>
-              <a href="https://ko-fi.com/morph777" target="_blank" title="Support me on Ko-fi">
+              <a href="https://ko-fi.com/morph777" target="_blank" rel="noopener noreferrer" title="Support me on Ko-fi">
                 <img src="/support_me_on_kofi_red.webp" alt="Ko-fi">
               </a>
             </div>
 
-            <!-- Ko-Fi BUTTON 
-            <div>
-              <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
-              <script>
-                kofiWidgetOverlay.draw('morph777', {
-                  'type': 'floating-chat',
-                  'floating-chat.donateButton.text': 'Donate',
-                  'floating-chat.donateButton.background-color': '#f45d22',
-                  'floating-chat.donateButton.text-color': '#fff'
-                });
-              </script>
-              -->
           </div>
         </div>
       </div>
 
       <div class="settings-buttons">
-        <button id="saveSettings">Save & Close</button>
-        <button id="cancelSettings">Cancel</button>
-        <button id="resetSettings">Reset to Defaults</button>
+        <button type="button" id="saveSettings">Save & Close</button>
+        <button type="button" id="cancelSettings">Cancel</button>
+        <button type="button" id="resetSettings">Reset to Defaults</button>
       </div>
     </div>
-  </div>
+  </main>
 
   <!-- LINK EDIT MODAL -->
-  <div id="linkEditModal" class="link-edit-panel" hidden>
+  <div id="linkEditModal" class="link-edit-panel" role="dialog" aria-modal="true" aria-labelledby="linkEditTitle" hidden>
     <div class="modal-content">
-      <h2>Edit Link</h2>
+      <h2 id="linkEditTitle">Edit Link</h2>
 
       <div class="settings-group">
         <label>
           <div>URL:</div>
-          <input type="text" id="editUrl" placeholder="https://example.com" />
+          <input type="url" id="editUrl" placeholder="https://example.com" inputmode="url" />
         </label>
         <label>
           <div>Title:</div>
@@ -350,14 +339,13 @@
       </div>
 
       <div class="settings-buttons">
-        <button id="saveLinkEdit">Save</button>
-        <button id="cancelLinkEdit">Cancel</button>
-        <button id="removeLink">Remove</button>
+        <button type="button" id="saveLinkEdit">Save</button>
+        <button type="button" id="cancelLinkEdit">Cancel</button>
+        <button type="button" id="removeLink">Remove</button>
       </div>
     </div>
   </div>
-  </div>
-  <script src="scripts.js" defer></script>
+  <script src="scripts.js?v=0.9.1" defer></script>
 </body>
 
 </html>

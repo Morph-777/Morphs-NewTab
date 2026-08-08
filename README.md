@@ -45,16 +45,24 @@ I decided to make it open-source and share it on the Web Store so others can enj
 
 ## Perfect For
 
-- People who switched from Firefox to Chromuim based browser
+- People who switched from Firefox to a Chromium-based browser
 - Minimalists who want a clean start page
 - Power users who need quick access to frequent sites
 - Anyone tired of Chrome/Brave's default new tab
 
 ## Privacy
 
-This extension respects your privacy — **no tracking, no ads**, just a fast and personal new tab experience.  
-Permissions are only needed for suggestions in the integrated search bar.  
-**No data is ever collected.**
+This extension contains **no analytics, tracking, advertising, or remote account service**. Links, settings, and wallpapers stay in your browser profile.
+
+The extension requests browser history and top-sites access for local search suggestions, and bookmarks access for the optional bookmarks bar. It does not upload that browser data.
+
+Some optional features contact third-party services directly:
+
+- Submitting a search sends the query to the search engine you selected.
+- Favicons may be requested from DuckDuckGo or Google, depending on the selected favicon provider.
+- Choosing a non-system clock font loads that font from Google Fonts.
+
+These requests are subject to the respective provider's privacy policy. Use the system font and the direct favicon provider if you prefer not to use those services.
 
 [BadgeWebStore]: https://img.shields.io/badge/Get%20on-Chrome%20WebStore-239F42
 [WebStore]: https://chromewebstore.google.com/
