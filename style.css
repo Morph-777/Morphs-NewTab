@@ -251,6 +251,10 @@ body {
   scrollbar-color: var(--highlight) transparent;
 }
 
+#linkGrid.search-hidden {
+  margin-top: 0 !important;
+}
+
 .link-grid::-webkit-scrollbar {
   height: 6px;
 }
@@ -265,9 +269,12 @@ body {
 }
 
 .link-tile {
-  width: 64px;
-  height: 64px;
-  margin-top: 16px;
+  --link-tile-width: 64px;
+  --link-tile-height: 64px;
+  --link-tile-margin-top: 16px;
+  width: var(--link-tile-width);
+  height: var(--link-tile-height);
+  margin-top: var(--link-tile-margin-top);
   background-color: var(--tile);
   border-radius: 8px;
   display: flex;
@@ -290,9 +297,19 @@ body {
   flex-direction: column;
   align-items: center;
   width: 96px;
-  height: 120px;
+  min-height: 120px;
   margin-block-end: 16px;
   border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.link-grid.link-labels-hidden .link-wrapper {
+  min-height: 0;
+  margin-block-end: 0;
+}
+
+.link-grid.link-labels-hidden .link-tile {
+  margin-bottom: var(--link-tile-margin-top);
 }
 
 .link-wrapper:focus-visible {
@@ -767,36 +784,14 @@ select {
   padding: 0;
 }
 
-#linkEditModal {
-  width: 400px;
-  min-height: auto;
-}
-
-#linkEditModal input[type="text"],
-#linkEditModal input[type="url"] {
-  width: 100%;
-  padding: 8px;
-  background: var(--input-bg);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  color: var(--sg-text);
-}
-
-#linkEditModal .settings-buttons {
-  margin-top: 0;
-}
-
-#linkEditModal .tabs-content-container .tab-content {
-  display: block;
-  position: relative;
-}
-
 #removeLink {
   background: var(--warn) !important;
+  color: #fff !important;
 }
 
 #removeLink:hover {
   background: var(--warn) !important;
+  color: #fff !important;
 }
 
 #clockPreview {
@@ -840,29 +835,6 @@ input[type="range" i]::-webkit-slider-container {
     background: white;
 }
 
-#linkEditModal {
-  width: 400px;
-  min-height: auto;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-}
-
-#linkEditModal .modal-content {
-  display: block;
-  gap: 0;
-}
-
-#linkEditModal .settings-buttons {
-  margin-top: 20px;
-  display: flex;
-  padding: 20px 0 0 0;
-}
-
-#linkEditModal .settings-buttons button {
-  flex: 1;
-}
-
 .link-edit-panel {
   position: fixed;
   top: 50%;
@@ -881,6 +853,103 @@ input[type="range" i]::-webkit-slider-container {
   overflow: hidden;
   transition: opacity 0.2s ease, transform 0.2s ease;
   opacity: 0;
+}
+
+#linkEditModal {
+  display: block;
+  width: min(420px, calc(100vw - 32px));
+  min-height: auto;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+#linkEditModal .modal-content {
+  display: block;
+}
+
+#linkEditModal .settings-group {
+  padding: 16px;
+  background: var(--bg);
+  border: 0;
+}
+
+#linkEditModal .settings-group label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 6px;
+}
+
+#linkEditModal .settings-group label:not(:first-child) {
+  margin-top: 14px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+#linkEditModal input[type="text"],
+#linkEditModal input[type="url"],
+#linkEditModal select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 38px;
+  padding: 9px 11px;
+  background: var(--tile);
+  border: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
+  border-radius: var(--radius);
+  color: var(--text);
+  font: inherit;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#linkEditModal input::placeholder {
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+}
+
+#linkEditModal select {
+  appearance: none;
+  padding-right: 38px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text) 50%),
+    linear-gradient(135deg, var(--text) 50%, transparent 50%);
+  background-position:
+    calc(100% - 17px) 50%,
+    calc(100% - 12px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+#linkEditModal input:is([type="text"], [type="url"]):hover,
+#linkEditModal select:hover {
+  border-color: color-mix(in srgb, var(--text) 42%, transparent);
+}
+
+#linkEditModal input:is([type="text"], [type="url"]):focus-visible,
+#linkEditModal select:focus-visible {
+  border-color: var(--input-glow);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--input-glow) 35%, transparent);
+}
+
+#linkEditModal .settings-buttons {
+  display: flex;
+  margin-top: 20px;
+  padding: 20px 0 0;
+  background: transparent;
+  border-top: 0;
+}
+
+#linkEditModal .settings-buttons button {
+  flex: 1;
+  background: var(--highlight);
+  color: var(--text);
+}
+
+#linkEditModal .settings-buttons button:hover {
+  background: var(--highlight);
+  color: var(--text);
+  box-shadow: 0 0 0 2px var(--input-glow);
 }
 
 .link-edit-panel:not([hidden]) {
@@ -1021,8 +1090,7 @@ input[type="range" i]::-webkit-slider-container {
   }
 
   #linkEditModal {
-    width: calc(100vw - 32px);
-    box-sizing: border-box;
+    padding: 20px;
   }
 }
 

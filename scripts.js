@@ -96,7 +96,8 @@ const themes = {
       match: "rgba(255,221,0,0.85)",
       clockColor: "#ffffff"
     },
-    clock: { font: "system-ui, sans-serif", size: 5, margin: 40 }
+    clock: { font: "system-ui, sans-serif", size: 5, margin: 40 },
+    interface: { ...defaults.interface }
   },
   fox: {
     colors: {
@@ -109,7 +110,8 @@ const themes = {
       match: "rgba(255,200,0,0.85)",
       clockColor: "#fbfbfe"
     },
-    clock: { font: "'Poppins', sans-serif", size: 5, margin: 40 }
+    clock: { font: "'Poppins', sans-serif", size: 5, margin: 40 },
+    interface: { ...defaults.interface }
   },
   black: {
     colors: {
@@ -122,7 +124,8 @@ const themes = {
       match: "rgba(255,221,0,0.85)",
       clockColor: "#ffffff"
     },
-    clock: { font: "'Roboto', sans-serif", size: 5, margin: 40 }
+    clock: { font: "'Roboto', sans-serif", size: 5, margin: 40 },
+    interface: { ...defaults.interface }
   },
   "dark-grey": {
     colors: {
@@ -135,7 +138,8 @@ const themes = {
       match: "rgba(255,221,0,0.85)",
       clockColor: "#ffffff"
     },
-    clock: { font: "'Open Sans', sans-serif", size: 5, margin: 40 }
+    clock: { font: "'Open Sans', sans-serif", size: 5, margin: 40 },
+    interface: { ...defaults.interface }
   },
   light: {
     colors: {
@@ -148,7 +152,8 @@ const themes = {
       match: "rgba(88,133,255,0.85)",
       clockColor: "#333333"
     },
-    clock: { font: "'Montserrat', sans-serif", size: 5, margin: 40 }
+    clock: { font: "'Montserrat', sans-serif", size: 5, margin: 40 },
+    interface: { ...defaults.interface }
   }
 };
 
@@ -295,7 +300,7 @@ function parseProps(el, selector, section, body, defs) {
     if (!tokens[0]) continue;
     const propRaw = tokens[0];
     const prop = toCamelCase(propRaw);
-    const label = humanize(propRaw);
+    const label = prop === 'color' ? 'Text Color' : humanize(propRaw);
 
     if (tokens[1] === 'color') {
       defs.push({ el, selector, section, prop, type: 'color', label });
@@ -340,8 +345,15 @@ const morphCustomProperties = {
   clockShadowBlur: '--clock-shadow-blur'
 };
 
+const selectorMorphCustomProperties = {
+  'linkTile-width': '--link-tile-width',
+  'linkTile-height': '--link-tile-height',
+  'linkTile-marginTop': '--link-tile-margin-top'
+};
+
 function cssPropertyFor(def) {
-  return morphCustomProperties[def.prop]
+  return selectorMorphCustomProperties[`${def.selector}-${def.prop}`]
+    || morphCustomProperties[def.prop]
     || def.prop.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`);
 }
 
@@ -380,7 +392,7 @@ function renderMorphRules() {
 function applyStyle(def, value) {
   const normalized = normalizeMorphValue(def, value);
   if (def.selector === 'self') {
-    if (morphCustomProperties[def.prop]) {
+    if (cssPropertyFor(def).startsWith('--')) {
       def.el.style.setProperty(cssPropertyFor(def), normalized);
     } else {
       def.el.style[def.prop] = normalized;
@@ -394,7 +406,7 @@ function applyStyle(def, value) {
 function clearMorphStyles() {
   morphDefs.forEach(def => {
     if (def.selector !== 'self') return;
-    if (morphCustomProperties[def.prop]) {
+    if (cssPropertyFor(def).startsWith('--')) {
       def.el.style.removeProperty(cssPropertyFor(def));
     } else {
       def.el.style[def.prop] = '';
@@ -735,10 +747,6 @@ function setupEventListeners() {
       });
     });
   });
-  elToggleSearch.addEventListener("change", function () {
-    elLinkGrid.style.margin = this.checked ? "60px" : "0";
-  });
-
   // — APPEARANCE SETTINGS —
   elThemeSelector.addEventListener("change", (e) => onThemeChange(e.target.value));
 
@@ -935,6 +943,8 @@ function applyInterface({ showClock, showSearch, showLinks, showLinkLabels }) {
   document.getElementById("clock").style.display = showClock ? "" : "none";
   document.querySelector(".search").style.display = showSearch ? "" : "none";
   document.getElementById("linkGrid").style.display = showLinks ? "" : "none";
+  grid.classList.toggle("search-hidden", !showSearch);
+  grid.classList.toggle("link-labels-hidden", !showLinkLabels);
   document.querySelectorAll(".link-label").forEach(lbl => {
     lbl.style.display = showLinkLabels ? "" : "none";
   });
@@ -1160,6 +1170,17 @@ function applyTheme(id, useClockPreset = false) {
     elClock.style.fontSize = `${t.clock.size}rem`;
     elClock.style.marginBottom = `${t.clock.margin}px`;
     elClockPreview.style.color = t.colors.clockColor;
+
+    const themeInterface = t.interface || defaults.interface;
+    [
+      [elToggleClock, themeInterface.showClock],
+      [elToggleSearch, themeInterface.showSearch],
+      [elToggleLinks, themeInterface.showLinks],
+      [elToggleLinkLabels, themeInterface.showLinkLabels]
+    ].forEach(([element, checked]) => {
+      element.checked = checked;
+    });
+    applyInterface(themeInterface);
   }
 }
 
@@ -1482,7 +1503,7 @@ async function resetAllSettings() {
 
 function applyGridLayout(cols, rows) {
   grid.style.gridTemplateColumns = `repeat(${cols}, minmax(72px, 96px))`;
-  grid.style.gridTemplateRows = `repeat(${rows}, 127.2px)`;
+  grid.style.gridTemplateRows = `repeat(${rows}, auto)`;
   TOTAL_TILES = cols * rows;
   renderGrid();
 }
