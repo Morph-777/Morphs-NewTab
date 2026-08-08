@@ -54,7 +54,7 @@ I decided to make it open-source and share it on the Web Store so others can enj
 
 This extension contains **no analytics, tracking, advertising, or remote account service**. Links, settings, and wallpapers stay in your browser profile.
 
-The extension requests browser history and top-sites access for local search suggestions, and bookmarks access for the optional bookmarks bar. It does not upload that browser data.
+The extension requests browser history and top-sites access for local search suggestions. It does not upload that browser data.
 
 Some optional features contact third-party services directly:
 

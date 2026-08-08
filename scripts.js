@@ -41,8 +41,7 @@ const defaults = {
     showClock: true,
     showSearch: true,
     showLinks: true,
-    showLinkLabels: true,
-    showBookmarks: false
+    showLinkLabels: true
   },
   grid: {
     cols: 8,
@@ -191,11 +190,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const runWhenIdle = window.requestIdleCallback || ((callback) => setTimeout(callback, 0));
     runWhenIdle(async () => {
       await loadFonts();
-      try {
-        await fetchAndRenderBookmarks();
-      } catch (error) {
-        console.warn("Bookmarks could not be loaded:", error);
-      }
     });
   } catch (error) {
     console.error("New tab initialization failed:", error);
@@ -645,7 +639,6 @@ const elToggleClock = document.getElementById("toggleClock");
 const elToggleSearch = document.getElementById("toggleSearch");
 const elToggleLinks = document.getElementById("toggleLinks");
 const elToggleLinkLabels = document.getElementById("toggleLinkLabels")
-const elToggleBookmarks = document.getElementById("toggleBookmarks");
 const elLinkGrid = document.getElementById("linkGrid");
 const elThemeSelector = document.getElementById("themeSelector");
 const elSearchInput = document.getElementById("searchInput");
@@ -732,14 +725,13 @@ function setupEventListeners() {
   });
 
   // — INTERFACE TOGGLES —
-  [elToggleClock, elToggleSearch, elToggleLinks, elToggleLinkLabels, elToggleBookmarks].forEach(el => {
+  [elToggleClock, elToggleSearch, elToggleLinks, elToggleLinkLabels].forEach(el => {
     el.addEventListener("change", () => {
       applyInterface({
         showClock: elToggleClock.checked,
         showSearch: elToggleSearch.checked,
         showLinks: elToggleLinks.checked,
-        showLinkLabels: elToggleLinkLabels.checked,
-        showBookmarks: elToggleBookmarks.checked
+        showLinkLabels: elToggleLinkLabels.checked
       });
     });
   });
@@ -939,11 +931,10 @@ async function getFavicon(link, providerOverride = null) {
     return "favicon.png";
   }
 }
-function applyInterface({ showClock, showSearch, showLinks, showLinkLabels, showBookmarks }) {
+function applyInterface({ showClock, showSearch, showLinks, showLinkLabels }) {
   document.getElementById("clock").style.display = showClock ? "" : "none";
   document.querySelector(".search").style.display = showSearch ? "" : "none";
   document.getElementById("linkGrid").style.display = showLinks ? "" : "none";
-  document.getElementById("bookmarkBar").style.display = showBookmarks ? "flex" : "none";
   document.querySelectorAll(".link-label").forEach(lbl => {
     lbl.style.display = showLinkLabels ? "" : "none";
   });
@@ -1086,99 +1077,6 @@ function applySearchEngine(engine) {
 
   document.getElementById("searchEngine").value = engine;
 }
-
-
-
-// ==========================
-// 📑 BOOKMARK BAR
-// ==========================
-
-async function fetchAndRenderBookmarks() {
-  if (!extensionApi?.bookmarks?.getTree) return;
-  // wrap callback API in a Promise
-  const tree = await new Promise(resolve => extensionApi.bookmarks.getTree(resolve));
-  const barNode = findBarNode(tree);
-  const container = document.getElementById("bookmarkBar");
-  container.innerHTML = "";
-
-  if (barNode && Array.isArray(barNode.children)) {
-    barNode.children.forEach(node => {
-      container.appendChild(makeBookmarkNode(node));
-    });
-  }
-}
-function makeBookmarkNode(node) {
-  // If it's a bookmark URL:
-  if (node.url) {
-    const safeUrl = normalizeHttpUrl(node.url);
-    if (!safeUrl) return document.createDocumentFragment();
-    const a = document.createElement("a");
-    a.className = "bookmark-item";
-    a.href = safeUrl;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-
-    // Favicon
-    const img = document.createElement("img");
-    const host = new URL(safeUrl).hostname;
-    img.src = `https://icons.duckduckgo.com/ip3/${host}.ico`;
-    img.alt = "";
-    a.appendChild(img);
-
-    // Title
-    const span = document.createElement("span");
-    span.textContent = node.title || host;
-    a.appendChild(span);
-
-    return a;
-
-    // If it's a folder:
-  } else if (Array.isArray(node.children)) {
-    const div = document.createElement("div");
-    div.className = "bookmark-folder";
-    div.tabIndex = 0;
-    div.setAttribute("role", "button");
-    div.setAttribute("aria-haspopup", "menu");
-    div.setAttribute("aria-label", node.title || "Bookmark folder");
-
-    // Folder icon
-    const icon = document.createElement("img");
-    icon.src = extensionApi?.runtime?.getURL?.("folder.png") || "folder.png";
-    icon.alt = "";
-    icon.className = "folder-icon";
-    div.appendChild(icon);
-
-    // Folder label
-    const label = document.createElement("span");
-    label.textContent = node.title || "Folder";
-    div.appendChild(label);
-
-    // Child container
-    const childContainer = document.createElement("div");
-    childContainer.className = "folder-children";
-    childContainer.setAttribute("role", "menu");
-    node.children.forEach(child => {
-      childContainer.appendChild(makeBookmarkNode(child));
-    });
-    div.appendChild(childContainer);
-
-    return div;
-  }
-
-  // Fallback empty node
-  return document.createDocumentFragment();
-}
-function findBarNode(nodes) {
-  for (const n of nodes) {
-    if (n.id === "1" || /bookmarks (bar|toolbar)/i.test(n.title || "")) return n;
-    if (Array.isArray(n.children)) {
-      const found = findBarNode(n.children);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
 // ==========================
 // 🎨 THEME
 // ==========================
@@ -1424,8 +1322,7 @@ function sanitizeSettings(saved = {}) {
       showClock: bool(saved.interface?.showClock, defaults.interface.showClock),
       showSearch: bool(saved.interface?.showSearch, defaults.interface.showSearch),
       showLinks: bool(saved.interface?.showLinks, defaults.interface.showLinks),
-      showLinkLabels: bool(saved.interface?.showLinkLabels, defaults.interface.showLinkLabels),
-      showBookmarks: bool(saved.interface?.showBookmarks, defaults.interface.showBookmarks)
+      showLinkLabels: bool(saved.interface?.showLinkLabels, defaults.interface.showLinkLabels)
     },
     focus: {
       target: ["addressbar", "searchbar"].includes(saved.focus?.target) ? saved.focus.target : defaults.focus.target
@@ -1477,8 +1374,7 @@ function applyStoredSettings() {
     ["toggleClock", iface.showClock],
     ["toggleSearch", iface.showSearch],
     ["toggleLinks", iface.showLinks],
-    ["toggleLinkLabels", iface.showLinkLabels],
-    ["toggleBookmarks", iface.showBookmarks]
+    ["toggleLinkLabels", iface.showLinkLabels]
   ].forEach(([id, val]) => {
     const el = document.getElementById(id);
     if (el) el.checked = val;
@@ -1514,8 +1410,7 @@ function settingsFromForm() {
       showClock: document.getElementById("toggleClock").checked,
       showSearch: document.getElementById("toggleSearch").checked,
       showLinks: document.getElementById("toggleLinks").checked,
-      showLinkLabels: document.getElementById("toggleLinkLabels").checked,
-      showBookmarks: document.getElementById("toggleBookmarks").checked
+      showLinkLabels: document.getElementById("toggleLinkLabels").checked
     },
     focus: {
       target: document.getElementById("focusTarget").value

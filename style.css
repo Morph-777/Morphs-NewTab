@@ -75,31 +75,6 @@ body {
   position: relative;
 }
 
-.bookmark-bar {
-  flex-wrap: wrap;
-  width: 100%;
-  box-sizing: border-box;
-  gap: 12px;
-  padding: 4px 16px;
-  background: var(--tile);
-  border-bottom: 1px solid var(--highlight);
-}
-
-.bookmark-bar a {
-  color: var(--text);
-  text-decoration: none;
-  font-size: 0.9rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 120px;
-}
-
-.bookmark-bar a:hover {
-  text-decoration: underline;
-}
-
-
 .search input {
   width: min(720px, calc(100vw - 32px));
   max-width: 100%;
@@ -953,81 +928,6 @@ input[type="range" i]::-webkit-slider-container {
 #clockFont {
   scrollbar-width: thin;
   scrollbar-color: var(--sg-highlight) var(--sg-tile);
-}
-
-/* BOOKMARK BAR STYLING */
-#bookmarkBar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  background: var(--tile);
-  border-bottom: 1px solid var(--highlight);
-  box-sizing: border-box;
-}
-
-#bookmarkBar .bookmark-item,
-#bookmarkBar .bookmark-folder {
-  display: flex;
-  align-items: center;
-  padding: 6px 10px;
-  background: var(--bg);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-size: 0.9rem;
-  position: relative;
-  text-decoration: none;
-  cursor: pointer;
-  min-width: 0;
-}
-
-/* Favicons & folder icons */
-#bookmarkBar .bookmark-item img,
-#bookmarkBar .bookmark-folder img {
-  width: 16px;
-  height: 16px;
-  margin-right: 4px;
-  flex-shrink: 0;
-}
-
-/* Truncate text */
-#bookmarkBar .bookmark-item span,
-#bookmarkBar .bookmark-folder span {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Folder indicator */
-#bookmarkBar .bookmark-folder::after {
-  content: "▾";
-  margin-left: 4px;
-  font-size: 1em;
-}
-
-/* Submenu */
-#bookmarkBar .folder-children {
-  display: none;
-  position: absolute;
-  top: calc(100% - 4px);
-  left: 0;
-  flex-direction: column;
-  background: var(--tile);
-  border: 1px solid var(--highlight);
-  border-radius: var(--radius);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-  padding: 4px;
-  z-index: 1000;
-}
-
-#bookmarkBar .bookmark-folder:hover .folder-children,
-#bookmarkBar .bookmark-folder:focus-within .folder-children,
-#bookmarkBar .folder-children:hover {
-  display: flex;
-}
-
-#bookmarkBar .folder-children .bookmark-item {
-  margin: 2px 0;
 }
 
 /* —— Wallpaper Picker Styling —— */

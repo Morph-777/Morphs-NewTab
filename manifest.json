@@ -1,15 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Morph's NewTab",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Clean and minimalist NewTab page. Supports custom colours and reorder by dragging. Looks like the one in Firefox.",
   "chrome_url_overrides": {
     "newtab": "index.html"
   },
   "permissions": [
     "history",
-    "topSites",
-    "bookmarks"
+    "topSites"
   ],
   "browser_specific_settings": {
     "gecko": {
