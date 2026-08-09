@@ -354,21 +354,6 @@ body {
 
 /* ===== SETTINGS PANEL ===== */
 
-.settings-header {
-  text-align: center;
-  padding: 12px 16px;
-  font-size: 1.25rem;
-  font-weight: 400;
-  font-family: "Open Sans", sans-serif;
-  background: var(--sg-tile);
-  color: var(--text);
-}
-
-.settings-panel .settings-header h2 {
-  margin: 0;
-  font: inherit;
-}
-
 .settings-panel {
   position: fixed;
   top: 0;
@@ -792,13 +777,6 @@ select {
 #removeLink:hover {
   background: var(--warn) !important;
   color: #fff !important;
-}
-
-#clockPreview {
-  background-color: var(--bg);
-  border-radius: var(--radius);
-  text-align: center;
-  transition: all 0.2s ease;
 }
 
 input[type="range"] {

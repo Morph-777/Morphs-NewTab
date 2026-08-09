@@ -640,7 +640,6 @@ function collectMorphSettings() {
 
 // === CACHED ELEMENT REFERENCES ===
 const elClock = document.getElementById("clock");
-const elClockPreview = document.getElementById("clockPreview");
 const elClockFont = document.getElementById("clockFont");
 const elClockSize = document.getElementById("clockSize");
 const elClockSizeValue = document.getElementById("clockSizeValue");
@@ -714,13 +713,11 @@ function setupEventListeners() {
   elClockFont.addEventListener("change", (e) => {
     const f = e.target.value;
     ensureFontLoaded(f);
-    elClockPreview.style.fontFamily = f;
     elClock.style.fontFamily = f;
   });
   elClockSize.addEventListener("input", (e) => {
     const size = e.target.value;
     elClockSizeValue.textContent = size;
-    elClockPreview.style.fontSize = `${size}rem`;
     elClock.style.fontSize = `${size}rem`;
   });
   elClockMargin.addEventListener("input", (e) => {
@@ -1048,7 +1045,6 @@ function updateClock() {
 }
 function applyClockStyles() {
   const clock = document.getElementById("clock");
-  const preview = document.getElementById("clockPreview");
   const stored = getSettings();
 
   // 1) Font & size
@@ -1057,19 +1053,13 @@ function applyClockStyles() {
   ensureFontLoaded(font);
   clock.style.fontFamily = font;
   clock.style.fontSize = `${size}rem`;
-  if (preview) {
-    preview.style.fontFamily = font;
-    preview.style.fontSize = `${size}rem`;
-  }
 
   // Color comes from the active theme or Morph controls.
   clock.style.removeProperty("color");
-  if (preview) preview.style.color = getComputedStyle(document.documentElement).getPropertyValue("--clockColor");
 
   // 3) Spacing (margin)
   const margin = stored.clock.margin;
   clock.style.marginBottom = `${margin}px`;
-  if (preview) preview.style.marginBottom = "";
 }
 
 // ==========================
@@ -1169,7 +1159,6 @@ function applyTheme(id, useClockPreset = false) {
     elClock.style.fontFamily = t.clock.font;
     elClock.style.fontSize = `${t.clock.size}rem`;
     elClock.style.marginBottom = `${t.clock.margin}px`;
-    elClockPreview.style.color = t.colors.clockColor;
 
     const themeInterface = t.interface || defaults.interface;
     [

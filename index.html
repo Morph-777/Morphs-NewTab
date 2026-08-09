@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>New Tab</title>
-  <link rel="stylesheet" href="style.css?v=0.9.4" />
+  <link rel="stylesheet" href="style.css?v=0.9.5" />
   <link rel="icon" href="favicon.png" type="image/png" />
 </head>
 
@@ -56,10 +56,7 @@
     </div>
 
     <!-- SETTINGS PANEL -->
-    <div id="settings" class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" hidden>
-      <div class="settings-header">
-        <h2 id="settingsTitle">Morph's NewTab Settings</h2>
-      </div>
+    <div id="settings" class="settings-panel" role="dialog" aria-modal="true" aria-label="Morph's NewTab Settings" hidden>
       <div class="settings-sidebar">
         <div class="settings-tabs" role="tablist" aria-label="Settings sections">
           <button type="button" id="appearanceTab" class="tab-button active" data-tab="appearance" role="tab" aria-selected="true" aria-controls="appearance-tab">
@@ -115,9 +112,6 @@
           <!-- Clock Tab -->
 
           <div id="clock-tab" class="tab-content" role="tabpanel" aria-labelledby="clockTab">
-            <div class="settings-group">
-              <div id="clockPreview">12:34</div>
-            </div>
             <div class="settings-group">
               <label><span>Clock Font:</span>
                 <select id="clockFont"></select>
@@ -343,7 +337,7 @@
       </div>
     </div>
   </div>
-  <script src="scripts.js?v=0.9.4" defer></script>
+  <script src="scripts.js?v=0.9.5" defer></script>
 </body>
 
 </html>
