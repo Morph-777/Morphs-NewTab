@@ -25,6 +25,7 @@ const defaults = {
     tile: "#303036",
     highlight: "#404145",
     text: "#ffffff",
+    placeholder: "rgba(255,255,255,0.55)",
     label: "#dddddd",
     clockColor: "#ffffff"
   },
@@ -91,6 +92,7 @@ const themes = {
       tile: "#303036",
       highlight: "#404145",
       text: "#ffffff",
+      placeholder: "rgba(255,255,255,0.55)",
       label: "#dddddd",
       inputGlow: "rgba(170,170,255,1)",
       match: "rgba(255,221,0,0.85)",
@@ -105,6 +107,7 @@ const themes = {
       tile: "#42414d",
       highlight: "#55555c",
       text: "#fbfbfe",
+      placeholder: "rgba(251,251,254,0.55)",
       label: "#fbfbfe",
       inputGlow: "rgba(255,144,0,1)",
       match: "rgba(255,200,0,0.85)",
@@ -119,6 +122,7 @@ const themes = {
       tile: "#121212",
       highlight: "#1e1e1e",
       text: "#ffffff",
+      placeholder: "rgba(255,255,255,0.55)",
       label: "#aaaaaa",
       inputGlow: "rgba(170,170,255,1)",
       match: "rgba(255,221,0,0.85)",
@@ -133,6 +137,7 @@ const themes = {
       tile: "#2a2a2a",
       highlight: "#3a3a3a",
       text: "#ffffff",
+      placeholder: "rgba(255,255,255,0.55)",
       label: "#cccccc",
       inputGlow: "rgba(170,170,255,1)",
       match: "rgba(255,221,0,0.85)",
@@ -147,6 +152,7 @@ const themes = {
       tile: "#f5f5f5",
       highlight: "#e8e8e8",
       text: "#333333",
+      placeholder: "rgba(51,51,51,0.55)",
       label: "#666666",
       inputGlow: "rgba(100,100,255,1)",
       match: "rgba(88,133,255,0.85)",
@@ -182,11 +188,15 @@ const extensionApi = typeof chrome !== "undefined" ? chrome : null;
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     setFocus();
-    await loadFonts();
     applyStoredSettings();
     updateClock();
     setupEventListeners();
     setInterval(updateClock, 60_000);
+
+    loadFonts()
+      .then(() => applyClockFont(elClockFont.value || getSettings().clock.font))
+      .catch(error => console.warn("Could not initialize the selected clock font:", error))
+      .finally(() => elClock.classList.remove("clock-font-pending"));
 
     try {
       const db = await initDB();
@@ -214,7 +224,7 @@ document.addEventListener("DOMContentLoaded", async () => {
  *
  * menuClass:
  *   tells script where to put controls
- *   must match html class (e.g. “lg-style”, “lt-inter”, “clock”)
+ *   must match an HTML class (e.g. “grid-background-style”, “lt-inter”)
  *   
  * targetClass:
  *   undefined       → the element itself
@@ -246,7 +256,9 @@ function morphLabel(el, selector, propRaw, prop) {
   const contextualLabels = {
     'linkGrid:self:marginTop': 'Search-to-Grid Gap',
     'linkGrid:linkLabel:marginTop': 'Tile-to-Label Gap',
-    'linkGrid:link-wrapper:paddingBlock': 'Tile Area Vertical Padding'
+    'linkGrid:link-wrapper:paddingBlock': 'Tile Area Vertical Padding',
+    'linkGrid:link-wrapper:marginBlockEnd': 'Link Wrapper Bottom Margin',
+    'searchContainer:#searchInput::placeholder:color': 'Placeholder Text Color'
   };
   const contextual = contextualLabels[`${el.id}:${selector}:${prop}`];
   if (contextual) return contextual;
@@ -254,6 +266,13 @@ function morphLabel(el, selector, propRaw, prop) {
   const commonLabels = {
     color: 'Text Color',
     backdropBlur: 'Backdrop Blur',
+    backgroundShadowColor: 'Background Shadow Color',
+    backgroundShadowX: 'Background Shadow X',
+    backgroundShadowY: 'Background Shadow Y',
+    backgroundShadowBlur: 'Background Shadow Blur',
+    backgroundShadowSpread: 'Background Shadow Spread',
+    positionOffsetX: 'Horizontal Offset',
+    positionOffsetY: 'Vertical Offset',
     padding: 'Inner Padding',
     paddingBlock: 'Vertical Padding',
     paddingInline: 'Horizontal Padding'
@@ -360,7 +379,14 @@ const morphCustomProperties = {
   clockShadowColor: '--clock-shadow-color',
   clockShadowX: '--clock-shadow-x',
   clockShadowY: '--clock-shadow-y',
-  clockShadowBlur: '--clock-shadow-blur'
+  clockShadowBlur: '--clock-shadow-blur',
+  backgroundShadowColor: '--background-shadow-color',
+  backgroundShadowX: '--background-shadow-x',
+  backgroundShadowY: '--background-shadow-y',
+  backgroundShadowBlur: '--background-shadow-blur',
+  backgroundShadowSpread: '--background-shadow-spread',
+  positionOffsetX: '--position-offset-x',
+  positionOffsetY: '--position-offset-y'
 };
 
 const selectorMorphCustomProperties = {
@@ -397,6 +423,7 @@ function targetElements(def) {
 }
 
 function morphNumber(value) {
+  if (String(value ?? '').trim().toLowerCase() === 'none') return 0;
   const match = String(value ?? '').match(/-?(?:\d+(?:\.\d+)?|\.\d+)/);
   return match ? Number(match[0]) : NaN;
 }
@@ -404,7 +431,8 @@ function morphNumber(value) {
 function formatMorphRangeValue(def, number) {
   const value = `${number}${def.unit}`;
   const functional = functionalMorphProperties[def.prop];
-  return functional ? `${functional.functionName}(${value})` : value;
+  if (!functional) return value;
+  return number === 0 ? 'none' : `${functional.functionName}(${value})`;
 }
 
 function normalizeMorphValue(def, value) {
@@ -416,7 +444,10 @@ function normalizeMorphValue(def, value) {
       : (Number.isFinite(fallback) ? fallback : def.min);
     return formatMorphRangeValue(def, number);
   }
-  const validationProperty = def.prop === 'clockShadowColor' ? 'color' : cssPropertyFor(def);
+  const targetProperty = cssPropertyFor(def);
+  const validationProperty = def.type === 'color' && targetProperty.startsWith('--')
+    ? 'color'
+    : targetProperty;
   return typeof value === 'string' && CSS.supports(validationProperty, value) ? value : def.default;
 }
 
@@ -947,10 +978,16 @@ function setupEventListeners() {
 
 function setFocus() {
   const focusTarget = getSettings().focus.target;
-  // If focusTarget is "searchbar" and we're NOT already redirected
-  if (focusTarget === 'searchbar' && !location.search.includes('focus=1')) {
-    location.href = 'index.html?focus=1';  // add a query to mark that we've redirected
-    return; // important! exit early so nothing else runs yet
+  const searchFocusRequested = new URLSearchParams(location.search).get('focus') === '1';
+
+  if (focusTarget === 'searchbar') {
+    if (!searchFocusRequested) {
+      location.replace('index.html?focus=1');
+      return;
+    }
+    searchInput.focus({ preventScroll: true });
+  } else if (document.activeElement === searchInput) {
+    searchInput.blur();
   }
 }
 async function getFavicon(link, providerOverride = null) {
@@ -1023,7 +1060,8 @@ function fontFamilyName(cssValue) {
 
 function ensureFontLoaded(cssValue) {
   const font = fontCatalog.find(item => item.css === cssValue);
-  if (!font?.importUrl) return Promise.resolve(true);
+  if (!font) return Promise.resolve(cssValue === defaults.clock.font);
+  if (!font.importUrl) return Promise.resolve(true);
   if (fontLoadPromises.has(font.importUrl)) return fontLoadPromises.get(font.importUrl);
 
   const family = fontFamilyName(cssValue);

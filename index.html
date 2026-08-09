@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>New Tab</title>
-  <link rel="stylesheet" href="style.css?v=0.9.12" />
+  <link rel="stylesheet" href="style.css?v=0.9.20" />
   <link rel="icon" href="favicon.png" type="image/png" />
 </head>
 
@@ -15,26 +15,36 @@
   <!-- MAIN CONTAINER -->
 
   <main class="mainContainer">
-    <div class="container" id="container">
-      <div class="clock" id="clock" role="button" tabindex="0" aria-label="Open settings" title="Double-click to open settings" data-morph="
-          sg-clock[color color,
+    <div class="container" id="container" data-morph="arrange-inter[position-offset-x from-400to400 px, position-offset-y from-300to300 px]">
+        <div class="clock clock-font-pending" id="clock" role="button" tabindex="0" aria-label="Open settings" title="Double-click to open settings" data-morph="
+          clock-text-style[color color,
             clock-shadow-color color,
             clock-shadow-x from-40to40 px,
             clock-shadow-y from-40to40 px,
-            clock-shadow-blur from0to40 px,
-            background-color color,
-            border-radius from0to150 px,
-            outline-width from0to8 px,
-            outline-color color,
+            clock-shadow-blur from0to40 px],
+          clock-background-style[background-color color,
+            background-shadow-color color,
+            background-shadow-x from-40to40 px,
+            background-shadow-y from-40to40 px,
+            background-shadow-blur from0to40 px,
+            background-shadow-spread from-20to40 px,
             backdrop-blur from0to30 px],
-          clock-inter[padding-block from0to80 px, padding-inline from0to120 px]"></div>
+          clock-shape-style[border-radius from0to150 px,
+            outline-width from0to8 px,
+            outline-color color],
+          clock-inter[padding-block from0to80 px, padding-inline from0to120 px],
+          clock-arrange[position-offset-x from-240to240 px, position-offset-y from-120to120 px]"></div>
       <div class="search">
         <form id="searchForm" method="get">
           <div class="search-container" id="searchContainer" data-morph="
-            sb-style[background-color color, color color, border-radius from0to64 px, outline-width from0to8 px, outline-color color, backdrop-blur from0to30 px],
-            sb-inter[width from100to720 px, padding-block from4to32 px]">
+            search-text-style[color color],
+            search-background-style[background-color color, background-shadow-color color, background-shadow-x from-40to40 px, background-shadow-y from-40to40 px, background-shadow-blur from0to40 px, background-shadow-spread from-20to40 px, backdrop-blur from0to30 px],
+            search-shape-style[border-radius from0to64 px, outline-width from0to8 px, outline-color color],
+            sb-inter[width from100to720 px, padding-block from4to32 px],
+            search-arrange[position-offset-x from-240to240 px, position-offset-y from-120to120 px],
+            #searchInput::placeholder[search-text-style[color color]]">
             <img id="searchEngineIcon" src="https://duckduckgo.com/favicon.ico" alt="" class="search-icon" />
-            <input id="searchInput" type="text" name="q" placeholder=" Search with DuckDuckGo..." tabindex="0" autofocus
+            <input id="searchInput" type="text" name="q" placeholder=" Search with DuckDuckGo..." tabindex="0"
               autocomplete="off" aria-label="Search the web or browsing history" aria-autocomplete="list"
               aria-controls="searchSuggestions" aria-expanded="false" />
             <div id="searchSuggestions" class="search-suggestions" role="listbox" aria-label="Search suggestions"></div>
@@ -43,20 +53,25 @@
       </div>
       <div class="link-grid" id="linkGrid" role="list" aria-label="Favorite links" data-morph="
             lg-inter[margin-top from0to200 px, row-gap from0to100 px, column-gap from0to100 px, padding from0to40 px],
-            lg-style[background-color color, border-radius from0to200 px, outline-width from0to8 px, outline-color color, backdrop-blur from0to30 px],
+            grid-background-style[background-color color, backdrop-blur from0to30 px],
+            grid-shape-style[border-radius from0to200 px, outline-width from0to8 px, outline-color color],
+            grid-arrange[position-offset-x from-240to240 px, position-offset-y from-120to120 px],
             linkTile[
               lt-inter[width from40to96 px, height from40to96 px],
-              lt-style[background-color color, border-radius from0to64 px, outline-width from0to8 px, outline-color color, backdrop-blur from0to30 px]
+              tile-background-style[background-color color, background-shadow-color color, background-shadow-x from-40to40 px, background-shadow-y from-40to40 px, background-shadow-blur from0to40 px, background-shadow-spread from-20to40 px, backdrop-blur from0to30 px],
+              tile-shape-style[border-radius from0to64 px, outline-width from0to8 px, outline-color color]
             ],
             link-wrapper[
-              lt-inter[padding-block from0to40 px]
+              lt-inter[padding-block from0to40 px, margin-block-end from0to80 px]
             ],
             link-wrapper:hover[
               lw-style[background-color color, border-radius from0to64 px, backdrop-blur from0to30 px]
             ],
             linkLabel[
               ll-inter[font-size from8to24 px, margin-top from0to24 px, max-width from40to100 %, padding-block from0to24 px, padding-inline from0to24 px],
-              ll-style[background-color color, color color, border-radius from0to50 px, outline-width from0to8 px, outline-color color, backdrop-blur from0to30 px]
+              label-text-style[color color],
+              label-background-style[background-color color, background-shadow-color color, background-shadow-x from-40to40 px, background-shadow-y from-40to40 px, background-shadow-blur from0to40 px, background-shadow-spread from-20to40 px, backdrop-blur from0to30 px],
+              label-shape-style[border-radius from0to50 px, outline-width from0to8 px, outline-color color]
             ]">
       </div>
     </div>
@@ -96,6 +111,23 @@
               <label>Show Link Grid<input type="checkbox" id="toggleLinks" /></label>
               <label>Show Link Labels<input type="checkbox" id="toggleLinkLabels" /></label>
             </div>
+
+            <details class="settings-dropdown">
+              <summary>🧭 Arrangement</summary>
+              <div class="settings-dropdown-content">
+                <div class="settings-group">
+                  Offsets move elements visually while preserving the responsive layout and existing spacing.
+                </div>
+                <h4 class="settings-subcategory">Entire Layout</h4>
+                <div class="arrange-inter"></div>
+                <h4 class="settings-subcategory">Clock</h4>
+                <div class="clock-arrange"></div>
+                <h4 class="settings-subcategory">Search Bar</h4>
+                <div class="search-arrange"></div>
+                <h4 class="settings-subcategory">Link Grid</h4>
+                <div class="grid-arrange"></div>
+              </div>
+            </details>
 
             <details class="settings-dropdown">
               <summary>🕒 Clock</summary>
@@ -208,6 +240,7 @@
             <details class="settings-dropdown">
               <summary>🎨 Background</summary>
               <div class="settings-dropdown-content">
+                <div class="add-info">Use a color similar to your Wallpaper to make loading look smoother.</div>
                 <div class="bg-style">
                   <!-- morph controls here… -->
                 </div>
@@ -217,51 +250,63 @@
             <details class="settings-dropdown">
               <summary>🕒 Clock</summary>
               <div class="settings-dropdown-content">
+                <h4 class="settings-subcategory">Text &amp; Text Shadow</h4>
                 <div class="settings-group">
                   <label><span>Clock Font:</span>
                     <select id="clockFont"></select>
                   </label>
                 </div>
-                <div class="sg-clock"></div>
+                <div class="clock-text-style"></div>
+                <h4 class="settings-subcategory">Background &amp; Shadow</h4>
+                <div class="clock-background-style"></div>
+                <h4 class="settings-subcategory">Shape &amp; Outline</h4>
+                <div class="clock-shape-style"></div>
               </div>
             </details>
 
             <details class="settings-dropdown">
               <summary>🔍 Search Bar</summary>
               <div class="settings-dropdown-content">
-                <div class="sb-style">
-                  <!-- morph controls here… -->
-                </div>
+                <h4 class="settings-subcategory">Text</h4>
+                <div class="search-text-style"></div>
+                <h4 class="settings-subcategory">Background &amp; Shadow</h4>
+                <div class="search-background-style"></div>
+                <h4 class="settings-subcategory">Shape &amp; Outline</h4>
+                <div class="search-shape-style"></div>
               </div>
             </details>
 
             <details class="settings-dropdown">
               <summary>🔲 Link Tiles</summary>
               <div class="settings-dropdown-content">
-                <div class="lt-style">
-                  <!-- morph controls here… -->
-                </div>
-                <h4 class="settings-group">Link Wrapper</h4>
-                <div  class="lw-style">
-                </div>
+                <h4 class="settings-subcategory">Tile Background &amp; Shadow</h4>
+                <div class="tile-background-style"></div>
+                <h4 class="settings-subcategory">Tile Shape &amp; Outline</h4>
+                <div class="tile-shape-style"></div>
+                <h4 class="settings-subcategory">Link Wrapper</h4>
+                <div class="lw-style"></div>
               </div>
             </details>
 
             <details class="settings-dropdown">
               <summary>🏷️ Link Labels</summary>
               <div class="settings-dropdown-content">
-                <div class="ll-style">
-                  <!-- morph controls here… -->
-                </div>
+                <h4 class="settings-subcategory">Text</h4>
+                <div class="label-text-style"></div>
+                <h4 class="settings-subcategory">Background &amp; Shadow</h4>
+                <div class="label-background-style"></div>
+                <h4 class="settings-subcategory">Shape &amp; Outline</h4>
+                <div class="label-shape-style"></div>
               </div>
             </details>
 
             <details class="settings-dropdown">
               <summary>🔳 Link Grid</summary>
               <div class="settings-dropdown-content">
-                <div class="lg-style">
-                  <!-- morph controls here… -->
-                </div>
+                <h4 class="settings-subcategory">Background &amp; Effects</h4>
+                <div class="grid-background-style"></div>
+                <h4 class="settings-subcategory">Shape &amp; Outline</h4>
+                <div class="grid-shape-style"></div>
               </div>
             </details>
 
@@ -368,7 +413,7 @@
       </div>
     </div>
   </div>
-  <script src="scripts.js?v=0.9.12" defer></script>
+  <script src="scripts.js?v=0.9.20" defer></script>
 </body>
 
 </html>
