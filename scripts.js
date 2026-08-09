@@ -31,7 +31,7 @@ const defaults = {
   clock: {
     font: "system-ui, sans-serif",
     size: 5,
-    margin: 40
+    margin: 66
   },
   fonts: {
     clockFont: "Poppins, sans-serif",
@@ -96,7 +96,7 @@ const themes = {
       match: "rgba(255,221,0,0.85)",
       clockColor: "#ffffff"
     },
-    clock: { font: "system-ui, sans-serif", size: 5, margin: 40 },
+    clock: { font: "system-ui, sans-serif", size: 5, margin: 66 },
     interface: { ...defaults.interface }
   },
   fox: {
@@ -110,7 +110,7 @@ const themes = {
       match: "rgba(255,200,0,0.85)",
       clockColor: "#fbfbfe"
     },
-    clock: { font: "'Poppins', sans-serif", size: 5, margin: 40 },
+    clock: { font: "'Poppins', sans-serif", size: 5, margin: 66 },
     interface: { ...defaults.interface }
   },
   black: {
@@ -124,7 +124,7 @@ const themes = {
       match: "rgba(255,221,0,0.85)",
       clockColor: "#ffffff"
     },
-    clock: { font: "'Roboto', sans-serif", size: 5, margin: 40 },
+    clock: { font: "'Roboto', sans-serif", size: 5, margin: 66 },
     interface: { ...defaults.interface }
   },
   "dark-grey": {
@@ -138,7 +138,7 @@ const themes = {
       match: "rgba(255,221,0,0.85)",
       clockColor: "#ffffff"
     },
-    clock: { font: "'Open Sans', sans-serif", size: 5, margin: 40 },
+    clock: { font: "'Open Sans', sans-serif", size: 5, margin: 66 },
     interface: { ...defaults.interface }
   },
   light: {
@@ -152,7 +152,7 @@ const themes = {
       match: "rgba(88,133,255,0.85)",
       clockColor: "#333333"
     },
-    clock: { font: "'Montserrat', sans-serif", size: 5, margin: 40 },
+    clock: { font: "'Montserrat', sans-serif", size: 5, margin: 66 },
     interface: { ...defaults.interface }
   }
 };
@@ -170,6 +170,8 @@ let currentWallpaperURL = null;
 let pendingWallpaper;
 let lastFocusedElement = null;
 let fontCatalog = [];
+const fontLoadPromises = new Map();
+let clockFontRequest = 0;
 
 const extensionApi = typeof chrome !== "undefined" ? chrome : null;
 
@@ -180,6 +182,7 @@ const extensionApi = typeof chrome !== "undefined" ? chrome : null;
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     setFocus();
+    await loadFonts();
     applyStoredSettings();
     updateClock();
     setupEventListeners();
@@ -192,10 +195,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.warn("Wallpaper storage is unavailable:", error);
     }
 
-    const runWhenIdle = window.requestIdleCallback || ((callback) => setTimeout(callback, 0));
-    runWhenIdle(async () => {
-      await loadFonts();
-    });
   } catch (error) {
     console.error("New tab initialization failed:", error);
   }
@@ -227,6 +226,7 @@ document.addEventListener("DOMContentLoaded", async () => {
  * propDef:
  *   propName from<min>to<max> [unit]   → range slider (unit defaults to “px”)
  *   propName color                     → color picker + transparency slider
+ *   backdrop-blur range                → range slider rendered as blur(<value>)
  * 
  */
 
@@ -241,6 +241,24 @@ function humanize(str) {
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
     .replace(/[-_]/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase());
+}
+function morphLabel(el, selector, propRaw, prop) {
+  const contextualLabels = {
+    'linkGrid:self:marginTop': 'Search-to-Grid Gap',
+    'linkGrid:linkLabel:marginTop': 'Tile-to-Label Gap',
+    'linkGrid:link-wrapper:paddingBlock': 'Tile Area Vertical Padding'
+  };
+  const contextual = contextualLabels[`${el.id}:${selector}:${prop}`];
+  if (contextual) return contextual;
+
+  const commonLabels = {
+    color: 'Text Color',
+    backdropBlur: 'Backdrop Blur',
+    padding: 'Inner Padding',
+    paddingBlock: 'Vertical Padding',
+    paddingInline: 'Horizontal Padding'
+  };
+  return commonLabels[prop] || humanize(propRaw);
 }
 function parseMorphAttribute(el) {
   const raw = el.dataset.morph;
@@ -300,7 +318,7 @@ function parseProps(el, selector, section, body, defs) {
     if (!tokens[0]) continue;
     const propRaw = tokens[0];
     const prop = toCamelCase(propRaw);
-    const label = prop === 'color' ? 'Text Color' : humanize(propRaw);
+    const label = morphLabel(el, selector, propRaw, prop);
 
     if (tokens[1] === 'color') {
       defs.push({ el, selector, section, prop, type: 'color', label });
@@ -347,14 +365,25 @@ const morphCustomProperties = {
 
 const selectorMorphCustomProperties = {
   'linkTile-width': '--link-tile-width',
-  'linkTile-height': '--link-tile-height',
-  'linkTile-marginTop': '--link-tile-margin-top'
+  'linkTile-height': '--link-tile-height'
+};
+
+const functionalMorphProperties = {
+  backdropBlur: { cssProperty: 'backdrop-filter', functionName: 'blur' }
 };
 
 function cssPropertyFor(def) {
   return selectorMorphCustomProperties[`${def.selector}-${def.prop}`]
     || morphCustomProperties[def.prop]
+    || functionalMorphProperties[def.prop]?.cssProperty
     || def.prop.replace(/[A-Z]/g, character => `-${character.toLowerCase()}`);
+}
+
+function cssPropertiesFor(def) {
+  const property = cssPropertyFor(def);
+  return property === 'backdrop-filter'
+    ? ['backdrop-filter', '-webkit-backdrop-filter']
+    : [property];
 }
 
 function targetElements(def) {
@@ -367,10 +396,25 @@ function targetElements(def) {
   }
 }
 
+function morphNumber(value) {
+  const match = String(value ?? '').match(/-?(?:\d+(?:\.\d+)?|\.\d+)/);
+  return match ? Number(match[0]) : NaN;
+}
+
+function formatMorphRangeValue(def, number) {
+  const value = `${number}${def.unit}`;
+  const functional = functionalMorphProperties[def.prop];
+  return functional ? `${functional.functionName}(${value})` : value;
+}
+
 function normalizeMorphValue(def, value) {
   if (def.type === 'range') {
-    const number = Math.min(def.max, Math.max(def.min, parseFloat(value)));
-    return Number.isFinite(number) ? `${number}${def.unit}` : `${def.default}${def.unit}`;
+    const parsed = morphNumber(value);
+    const fallback = morphNumber(def.default);
+    const number = Number.isFinite(parsed)
+      ? Math.min(def.max, Math.max(def.min, parsed))
+      : (Number.isFinite(fallback) ? fallback : def.min);
+    return formatMorphRangeValue(def, number);
   }
   const validationProperty = def.prop === 'clockShadowColor' ? 'color' : cssPropertyFor(def);
   return typeof value === 'string' && CSS.supports(validationProperty, value) ? value : def.default;
@@ -385,18 +429,17 @@ function renderMorphRules() {
   }
   style.textContent = Array.from(morphRuleValues.values()).map(({ def, value }) => {
     const selector = selectorFor(def);
-    return `#${def.el.id} ${selector} { ${cssPropertyFor(def)}: ${value} !important; }`;
+    const declarations = cssPropertiesFor(def)
+      .map(property => `${property}: ${value} !important;`)
+      .join(' ');
+    return `#${def.el.id} ${selector} { ${declarations} }`;
   }).join('\n');
 }
 
 function applyStyle(def, value) {
   const normalized = normalizeMorphValue(def, value);
   if (def.selector === 'self') {
-    if (cssPropertyFor(def).startsWith('--')) {
-      def.el.style.setProperty(cssPropertyFor(def), normalized);
-    } else {
-      def.el.style[def.prop] = normalized;
-    }
+    cssPropertiesFor(def).forEach(property => def.el.style.setProperty(property, normalized));
     return;
   }
   morphRuleValues.set(morphKey(def), { def, value: normalized });
@@ -406,11 +449,7 @@ function applyStyle(def, value) {
 function clearMorphStyles() {
   morphDefs.forEach(def => {
     if (def.selector !== 'self') return;
-    if (cssPropertyFor(def).startsWith('--')) {
-      def.el.style.removeProperty(cssPropertyFor(def));
-    } else {
-      def.el.style[def.prop] = '';
-    }
+    cssPropertiesFor(def).forEach(property => def.el.style.removeProperty(property));
   });
   morphRuleValues.clear();
   renderMorphRules();
@@ -468,9 +507,8 @@ function buildMorphControls(morphValues = null) {
           inp.type = 'range';
           inp.setAttribute('data-morph-key', key);
           inp.min = def.min; inp.max = def.max; inp.step = def.step || 1;
-          inp.value = savedMorph[key] !== undefined
-            ? parseFloat(savedMorph[key])
-            : def.default;
+          const savedNumber = morphNumber(savedMorph[key]);
+          inp.value = Number.isFinite(savedNumber) ? savedNumber : def.default;
 
           const vs = document.createElement('span');
           vs.textContent = `${inp.value}${def.unit}`;
@@ -537,9 +575,9 @@ function applyMorphSettings(settings) {
       const inp = document.querySelector(`input[type=range][data-morph-key="${key}"]`);
       if (!inp) return;
       const vs = inp.nextElementSibling;
-      const num = parseFloat(normalized);
+      const num = morphNumber(normalized);
       inp.value = num;
-      vs.textContent = normalized;
+      vs.textContent = `${num}${def.unit}`;
     } else {
       const col = document.querySelector(`input[type=color][data-morph-key="${key}"]`);
       const alpha = document.querySelector(`input[type=range][data-morph-key="${key}"]`);
@@ -592,7 +630,7 @@ function getDefaultValue(def) {
     getComputedStyle(document.documentElement).getPropertyValue(variable).trim()
   );
   if (def.type === 'range') {
-    const number = parseFloat(value);
+    const number = morphNumber(value);
     return Number.isFinite(number) ? number : def.min;
   }
   return value || 'rgba(0, 0, 0, 0)';
@@ -712,8 +750,7 @@ function setupEventListeners() {
   });
   elClockFont.addEventListener("change", (e) => {
     const f = e.target.value;
-    ensureFontLoaded(f);
-    elClock.style.fontFamily = f;
+    applyClockFont(f);
   });
   elClockSize.addEventListener("input", (e) => {
     const size = e.target.value;
@@ -733,7 +770,7 @@ function setupEventListeners() {
     }
   });
 
-  // — INTERFACE TOGGLES —
+  // — LAYOUT VISIBILITY TOGGLES —
   [elToggleClock, elToggleSearch, elToggleLinks, elToggleLinkLabels].forEach(el => {
     el.addEventListener("change", () => {
       applyInterface({
@@ -980,16 +1017,61 @@ function hexToRgb(hex) {
 // 🔤 FONT LOADING
 // ==========================
 
+function fontFamilyName(cssValue) {
+  return String(cssValue).split(',')[0].trim().replace(/^['"]|['"]$/g, '');
+}
+
 function ensureFontLoaded(cssValue) {
   const font = fontCatalog.find(item => item.css === cssValue);
-  const alreadyLoaded = Array.from(document.querySelectorAll('link[data-font-url]'))
-    .some(link => link.dataset.fontUrl === font?.importUrl);
-  if (!font?.importUrl || alreadyLoaded) return;
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = font.importUrl;
-  link.dataset.fontUrl = font.importUrl;
-  document.head.appendChild(link);
+  if (!font?.importUrl) return Promise.resolve(true);
+  if (fontLoadPromises.has(font.importUrl)) return fontLoadPromises.get(font.importUrl);
+
+  const family = fontFamilyName(cssValue);
+  const fontSpec = `400 1em "${family.replace(/"/g, '\\"')}"`;
+  const fontReady = new Promise((resolve, reject) => {
+    let link = Array.from(document.querySelectorAll('link[data-font-url]'))
+      .find(item => item.dataset.fontUrl === font.importUrl);
+    if (link?.sheet) {
+      resolve();
+      return;
+    }
+    const isNew = !link;
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = font.importUrl;
+      link.dataset.fontUrl = font.importUrl;
+    }
+    link.addEventListener("load", resolve, { once: true });
+    link.addEventListener("error", () => reject(new Error(`Could not load ${family}`)), { once: true });
+    if (isNew) document.head.appendChild(link);
+  })
+    .then(() => document.fonts.load(fontSpec))
+    .then(() => true);
+
+  let timeoutId;
+  const timeout = new Promise(resolve => {
+    timeoutId = setTimeout(() => resolve(false), 2500);
+  });
+  const promise = Promise.race([fontReady, timeout])
+    .catch(error => {
+      console.warn("Could not load the selected clock font:", error);
+      return false;
+    })
+    .then(loaded => {
+      clearTimeout(timeoutId);
+      if (!loaded) fontLoadPromises.delete(font.importUrl);
+      return loaded;
+    });
+
+  fontLoadPromises.set(font.importUrl, promise);
+  return promise;
+}
+
+async function applyClockFont(cssValue) {
+  const request = ++clockFontRequest;
+  const loaded = await ensureFontLoaded(cssValue);
+  if (loaded && request === clockFontRequest) elClock.style.fontFamily = cssValue;
 }
 
 async function loadFonts() {
@@ -1009,7 +1091,7 @@ async function loadFonts() {
       return option;
     }));
     sel.value = currentFont;
-    ensureFontLoaded(currentFont);
+    await ensureFontLoaded(currentFont);
   } catch (error) {
     console.warn("Could not load the optional font catalog:", error);
     const option = document.createElement("option");
@@ -1050,8 +1132,7 @@ function applyClockStyles() {
   // 1) Font & size
   const font = stored.clock.font;
   const size = stored.clock.size;
-  ensureFontLoaded(font);
-  clock.style.fontFamily = font;
+  applyClockFont(font);
   clock.style.fontSize = `${size}rem`;
 
   // Color comes from the active theme or Morph controls.
@@ -1155,8 +1236,7 @@ function applyTheme(id, useClockPreset = false) {
     document.getElementById("clockSizeValue").textContent = t.clock.size;
     document.getElementById("clockMargin").value = t.clock.margin;
     document.getElementById("clockMarginValue").textContent = t.clock.margin;
-    ensureFontLoaded(t.clock.font);
-    elClock.style.fontFamily = t.clock.font;
+    applyClockFont(t.clock.font);
     elClock.style.fontSize = `${t.clock.size}rem`;
     elClock.style.marginBottom = `${t.clock.margin}px`;
 
@@ -1529,6 +1609,7 @@ function renderGrid() {
       img.style.pointerEvents = "none";
       tile.appendChild(img);
       label.textContent = item.title || item.url;
+      label.title = label.textContent;
 
       // Variables to track drag vs click
       let isDragging = false;

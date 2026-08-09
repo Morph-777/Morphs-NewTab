@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>New Tab</title>
-  <link rel="stylesheet" href="style.css?v=0.9.5" />
+  <link rel="stylesheet" href="style.css?v=0.9.12" />
   <link rel="icon" href="favicon.png" type="image/png" />
 </head>
 
@@ -24,33 +24,39 @@
             clock-shadow-blur from0to40 px,
             background-color color,
             border-radius from0to150 px,
-            padding-bottom from0to100 px]"></div>
+            outline-width from0to8 px,
+            outline-color color,
+            backdrop-blur from0to30 px],
+          clock-inter[padding-block from0to80 px, padding-inline from0to120 px]"></div>
       <div class="search">
         <form id="searchForm" method="get">
-          <div class="search-container">
+          <div class="search-container" id="searchContainer" data-morph="
+            sb-style[background-color color, color color, border-radius from0to64 px, outline-width from0to8 px, outline-color color, backdrop-blur from0to30 px],
+            sb-inter[width from100to720 px, padding-block from4to32 px]">
             <img id="searchEngineIcon" src="https://duckduckgo.com/favicon.ico" alt="" class="search-icon" />
             <input id="searchInput" type="text" name="q" placeholder=" Search with DuckDuckGo..." tabindex="0" autofocus
               autocomplete="off" aria-label="Search the web or browsing history" aria-autocomplete="list"
-              aria-controls="searchSuggestions" aria-expanded="false" data-morph="
-                sb-style[background-color color, color color, border-radius from0to64 px, outline-width from0to8, outline-color color],
-                sb-inter[width from100to786 px]" />
+              aria-controls="searchSuggestions" aria-expanded="false" />
             <div id="searchSuggestions" class="search-suggestions" role="listbox" aria-label="Search suggestions"></div>
           </div>
         </form>
       </div>
       <div class="link-grid" id="linkGrid" role="list" aria-label="Favorite links" data-morph="
-            lg-inter[margin-top from0to200 px, row-gap from0to100 px, column-gap from0to100 px],
-            lg-style[background-color color, border-radius from0to200 px],
+            lg-inter[margin-top from0to200 px, row-gap from0to100 px, column-gap from0to100 px, padding from0to40 px],
+            lg-style[background-color color, border-radius from0to200 px, outline-width from0to8 px, outline-color color, backdrop-blur from0to30 px],
             linkTile[
-              lt-inter[width from40to96 px, height from40to96 px, margin-top from0to40 px],
-              lt-style[background-color color, border-radius from0to64 px, outline-width from0to8 px, outline-color color]
+              lt-inter[width from40to96 px, height from40to96 px],
+              lt-style[background-color color, border-radius from0to64 px, outline-width from0to8 px, outline-color color, backdrop-blur from0to30 px]
+            ],
+            link-wrapper[
+              lt-inter[padding-block from0to40 px]
             ],
             link-wrapper:hover[
-              lw-style[background-color color, border-radius from0to64 px]
+              lw-style[background-color color, border-radius from0to64 px, backdrop-blur from0to30 px]
             ],
             linkLabel[
-              ll-inter[font-size from8to24 px, margin-top from0to24 px, max-width from40to100 %],
-              ll-style[background-color color, color color, border-radius from0to50 px, padding-top from0to40 px]
+              ll-inter[font-size from8to24 px, margin-top from0to24 px, max-width from40to100 %, padding-block from0to24 px, padding-inline from0to24 px],
+              ll-style[background-color color, color color, border-radius from0to50 px, outline-width from0to8 px, outline-color color, backdrop-blur from0to30 px]
             ]">
       </div>
     </div>
@@ -61,15 +67,11 @@
         <div class="settings-tabs" role="tablist" aria-label="Settings sections">
           <button type="button" id="appearanceTab" class="tab-button active" data-tab="appearance" role="tab" aria-selected="true" aria-controls="appearance-tab">
             <span class="tab-icon" aria-hidden="true">🎨</span>
-            <span class="tab-label">Style</span>
+            <span class="tab-label">Appearance</span>
           </button>
-          <button type="button" id="interfaceTab" class="tab-button" data-tab="interface" role="tab" aria-selected="false" aria-controls="interface-tab">
+          <button type="button" id="layoutTab" class="tab-button" data-tab="layout" role="tab" aria-selected="false" aria-controls="layout-tab">
             <span class="tab-icon" aria-hidden="true">🛠️</span>
-            <span class="tab-label">Interface</span>
-          </button>
-          <button type="button" id="clockTab" class="tab-button" data-tab="clock" role="tab" aria-selected="false" aria-controls="clock-tab">
-            <span class="tab-icon" aria-hidden="true">🕒</span>
-            <span class="tab-label">Clock</span>
+            <span class="tab-label">Layout</span>
           </button>
           <button type="button" id="linksTab" class="tab-button" data-tab="links" role="tab" aria-selected="false" aria-controls="links-tab">
             <span class="tab-icon" aria-hidden="true">🔗</span>
@@ -85,50 +87,81 @@
       <div class="settings-content">
         <div class="tabs-content-container">
 
-          <!-- Interface Tab -->
-          <div id="interface-tab" class="tab-content" role="tabpanel" aria-labelledby="interfaceTab">
-            <h3>Interface Options</h3>
+          <!-- Layout Tab -->
+          <div id="layout-tab" class="tab-content" role="tabpanel" aria-labelledby="layoutTab">
+            <h3>Visibility</h3>
             <div class="settings-group">
               <label>Show Clock<input type="checkbox" id="toggleClock" /></label>
               <label>Show Search Bar<input type="checkbox" id="toggleSearch" /></label>
               <label>Show Link Grid<input type="checkbox" id="toggleLinks" /></label>
               <label>Show Link Labels<input type="checkbox" id="toggleLinkLabels" /></label>
             </div>
-            <div class="sb-inter">
-              <h3>Search Bar</h3>
-            </div>
-            <div class="lt-inter">
-              <h3>Link Tiles</h3>
-            </div>
-            <div class="ll-inter">
-              <h3>Link Labels</h3>
-            </div>
-            <div class="lg-inter">
-              <h3>Link Grid</h3>
-            </div>
 
-          </div>
+            <details class="settings-dropdown">
+              <summary>🕒 Clock</summary>
+              <div class="settings-dropdown-content">
+                <div class="settings-group">
+                  <label>
+                    <span>Clock-to-Search Gap (px):</span>
+                    <input type="range" id="clockMargin" min="0" max="400" step="1" value="66" />
+                    <span id="clockMarginValue">66</span>
+                  </label>
+                  <label>
+                    <span>Clock Size (rem):</span>
+                    <input type="range" id="clockSize" min="2" max="10" step="0.5" value="5" />
+                    <span id="clockSizeValue">5</span>
+                  </label>
+                </div>
+                <div class="clock-inter"></div>
+              </div>
+            </details>
 
-          <!-- Clock Tab -->
+            <details class="settings-dropdown">
+              <summary>🔍 Search Bar</summary>
+              <div class="settings-dropdown-content">
+                <div class="sb-inter"></div>
+              </div>
+            </details>
 
-          <div id="clock-tab" class="tab-content" role="tabpanel" aria-labelledby="clockTab">
-            <div class="settings-group">
-              <label><span>Clock Font:</span>
-                <select id="clockFont"></select>
-              </label>
-              <label>
-                <span>Clock Spacing (px):</span>
-                <input type="range" id="clockMargin" min="0" max="400" step="1" value="40" />
-                <span id="clockMarginValue">40</span>
-              </label>
-              <label><span>Clock Size (rem):</span>
-                <input type="range" id="clockSize" min="2" max="10" step="0.5" value="5" />
-                <span id="clockSizeValue">5</span>
-              </label>
+            <details class="settings-dropdown">
+              <summary>🔲 Link Tiles</summary>
+              <div class="settings-dropdown-content">
+                <div class="lt-inter"></div>
+              </div>
+            </details>
 
-            </div>
-            <div class="sg-clock">
-            </div>
+            <details class="settings-dropdown">
+              <summary>🏷️ Link Labels</summary>
+              <div class="settings-dropdown-content">
+                <div class="ll-inter"></div>
+              </div>
+            </details>
+
+            <details class="settings-dropdown">
+              <summary>🔳 Link Grid</summary>
+              <div class="settings-dropdown-content">
+                <div class="settings-group">
+                  <div>Links outside a smaller grid are hidden, not deleted.</div>
+                  <div class="input-row">
+                    <label for="cols">Columns:</label>
+                    <div class="number-input">
+                      <button type="button" class="number-btn minus" aria-label="Decrease columns">−</button>
+                      <input type="number" id="cols" min="1" max="8" value="8" />
+                      <button type="button" class="number-btn plus" aria-label="Increase columns">+</button>
+                    </div>
+                  </div>
+                  <div class="input-row">
+                    <label for="rows">Rows:</label>
+                    <div class="number-input">
+                      <button type="button" class="number-btn minus" aria-label="Decrease rows">−</button>
+                      <input type="number" id="rows" min="1" max="5" value="2" />
+                      <button type="button" class="number-btn plus" aria-label="Increase rows">+</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="lg-inter"></div>
+              </div>
+            </details>
           </div>
 
           <!-- Appearance Tab -->
@@ -169,7 +202,7 @@
 
             <h3>Morph Customization</h3>
             <div class="settings-group">
-              Use the slider to change opacity. Pick your colors. Adapt the style.
+              Customize colors, borders, outlines, shadows, and blur. Backdrop blur is most visible with a transparent background color.
             </div>
 
             <details class="settings-dropdown">
@@ -178,6 +211,18 @@
                 <div class="bg-style">
                   <!-- morph controls here… -->
                 </div>
+              </div>
+            </details>
+
+            <details class="settings-dropdown">
+              <summary>🕒 Clock</summary>
+              <div class="settings-dropdown-content">
+                <div class="settings-group">
+                  <label><span>Clock Font:</span>
+                    <select id="clockFont"></select>
+                  </label>
+                </div>
+                <div class="sg-clock"></div>
               </div>
             </details>
 
@@ -203,7 +248,7 @@
             </details>
 
             <details class="settings-dropdown">
-              <summary>🏷️ Link Label</summary>
+              <summary>🏷️ Link Labels</summary>
               <div class="settings-dropdown-content">
                 <div class="ll-style">
                   <!-- morph controls here… -->
@@ -212,7 +257,7 @@
             </details>
 
             <details class="settings-dropdown">
-              <summary>🔳 Link-Grid Background</summary>
+              <summary>🔳 Link Grid</summary>
               <div class="settings-dropdown-content">
                 <div class="lg-style">
                   <!-- morph controls here… -->
@@ -227,6 +272,7 @@
 
           <!-- Links Tab -->
           <div id="links-tab" class="tab-content" role="tabpanel" aria-labelledby="linksTab">
+            <h3>Link Management</h3>
             <div class="settings-group">
               <div>Right-click any icon to edit links</div>
               <div>Drag and drop to rearrange</div>
@@ -237,24 +283,13 @@
               <button id="importLinks">Import Links</button>
               <input type="file" id="importLinksFile" accept=".json" hidden />
             </div>
+
+            <h3>Link Behavior</h3>
             <div class="settings-group">
-              <div>Links outside a smaller grid are hidden, not deleted.</div>
-              <div class="input-row">
-                <label for="cols">Columns:</label>
-                <div class="number-input">
-                  <button type="button" class="number-btn minus" aria-label="Decrease columns">−</button>
-                  <input type="number" id="cols" min="1" max="8" value="8" />
-                  <button type="button" class="number-btn plus" aria-label="Increase columns">+</button>
-                </div>
-              </div>
-              <div class="input-row">
-                <label for="rows">Rows:</label>
-                <div class="number-input">
-                  <button type="button" class="number-btn minus" aria-label="Decrease rows">−</button>
-                  <input type="number" id="rows" min="1" max="5" value="2" />
-                  <button type="button" class="number-btn plus" aria-label="Increase rows">+</button>
-                </div>
-              </div>
+              <label>
+                <div>Middle-click opens in background tab</div>
+                <input type="checkbox" id="middleClickBackground" />
+              </label>
             </div>
           </div>
 
@@ -276,10 +311,6 @@
                   <option value="yahoo">Yahoo</option>
                   <option value="ecosia">Ecosia</option>
                 </select>
-              </label>
-              <label>
-                <div>Middle-click opens in background tab</div>
-                <input type="checkbox" id="middleClickBackground" />
               </label>
             </div>
             <div class="settings-group settings-group-buttons">
@@ -337,7 +368,7 @@
       </div>
     </div>
   </div>
-  <script src="scripts.js?v=0.9.5" defer></script>
+  <script src="scripts.js?v=0.9.12" defer></script>
 </body>
 
 </html>
