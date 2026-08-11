@@ -175,6 +175,7 @@ let suggestionTimeout = null;
 let currentWallpaperURL = null;
 let pendingWallpaper;
 let lastFocusedElement = null;
+let settingsSessionSnapshot = null;
 let fontCatalog = [];
 const fontLoadPromises = new Map();
 let clockFontRequest = 0;
@@ -498,8 +499,10 @@ function morphKey(def) {
   return `${base}-${def.prop}`;
 }
 function buildMorphControls(morphValues = null) {
+  document.querySelectorAll('.morph-generated-control')
+    .forEach(control => control.remove());
   document.querySelectorAll('.settings-group.morph-generated')
-    .forEach(g => g.remove());
+    .forEach(group => group.remove());
 
   const savedMorph = morphValues || getSettings().morph || {};
 
@@ -512,81 +515,75 @@ function buildMorphControls(morphValues = null) {
     const pane = document.querySelector(`.${section}`);
     if (!pane) continue;
 
-    const byGroup = defs.reduce((acc, def) => {
-      const key = def.selector === 'self' ? def.el.id : def.selector;
-      (acc[key] = acc[key] || []).push(def);
-      return acc;
-    }, {});
+    // Append to a handmade group when one exists; otherwise create a group for
+    // this section. Different CSS targets still share one visual group.
+    const usesExistingGroup = pane.classList.contains('morph-controls-host');
+    const group = usesExistingGroup ? pane : document.createElement('div');
+    if (!usesExistingGroup) group.className = 'settings-group morph-generated';
 
-    // build one .settings-group per selector-group
-    for (const defsForGroup of Object.values(byGroup)) {
-      const group = document.createElement('div');
-      group.className = 'settings-group morph-generated';
+    defs.forEach(def => {
+      const wrap = document.createElement('label');
+      wrap.className = 'morph-control morph-generated-control';
 
-      defsForGroup.forEach(def => {
-        const wrap = document.createElement('label');
-        wrap.className = 'morph-control';
+      const lbl = document.createElement('div');
+      lbl.textContent = def.label;
+      wrap.appendChild(lbl);
 
-        const lbl = document.createElement('div');
-        lbl.textContent = def.label;
-        wrap.appendChild(lbl);
+      const key = (def.selector === 'self' ? def.el.id : def.selector) + '-' + def.prop;
 
-        const key = (def.selector === 'self' ? def.el.id : def.selector) + '-' + def.prop;
+      if (def.type === 'range') {
+        const inp = document.createElement('input');
+        inp.type = 'range';
+        inp.setAttribute('data-morph-key', key);
+        inp.min = def.min; inp.max = def.max; inp.step = def.step || 1;
+        const savedNumber = morphNumber(savedMorph[key]);
+        inp.value = Number.isFinite(savedNumber) ? savedNumber : def.default;
 
-        if (def.type === 'range') {
-          const inp = document.createElement('input');
-          inp.type = 'range';
-          inp.setAttribute('data-morph-key', key);
-          inp.min = def.min; inp.max = def.max; inp.step = def.step || 1;
-          const savedNumber = morphNumber(savedMorph[key]);
-          inp.value = Number.isFinite(savedNumber) ? savedNumber : def.default;
+        const vs = document.createElement('span');
+        vs.textContent = `${inp.value}${def.unit}`;
 
-          const vs = document.createElement('span');
-          vs.textContent = `${inp.value}${def.unit}`;
+        inp.addEventListener('input', e => {
+          const v = e.target.value + def.unit;
+          vs.textContent = v;
+          applyStyle(def, v);
+        });
 
-          inp.addEventListener('input', e => {
-            const v = e.target.value + def.unit;
-            vs.textContent = v;
-            applyStyle(def, v);
-          });
+        wrap.append(inp, vs);
+      }
+      else if (def.type === 'color') {
+        const col = document.createElement('input');
+        col.type = 'color';
+        col.setAttribute('data-morph-key', key);
+        const init = normalizeMorphValue(def, savedMorph[key] || def.default);
+        col.value = rgbToHex(init);
 
-          wrap.append(inp, vs);
-        }
-        else if (def.type === 'color') {
-          const col = document.createElement('input');
-          col.type = 'color';
-          col.setAttribute('data-morph-key', key);
-          const init = normalizeMorphValue(def, savedMorph[key] || def.default);
-          col.value = rgbToHex(init);
+        const alpha = document.createElement('input');
+        alpha.type = 'range';
+        alpha.setAttribute('data-morph-key', key);
+        alpha.min = 0; alpha.max = 100; alpha.step = 1;
+        alpha.value = Math.round(colorToRgba(init).a * 100);
 
-          const alpha = document.createElement('input');
-          alpha.type = 'range';
-          alpha.setAttribute('data-morph-key', key);
-          alpha.min = 0; alpha.max = 100; alpha.step = 1;
-          alpha.value = Math.round(colorToRgba(init).a * 100);
+        const aval = document.createElement('span');
+        aval.textContent = `${alpha.value}%`;
 
-          const aval = document.createElement('span');
+        const update = () => {
+          const { r, g, b } = hexToRgb(col.value);
+          const a = alpha.value / 100;
+          const rgba = `rgba(${r},${g},${b},${a})`;
+          applyStyle(def, rgba);
           aval.textContent = `${alpha.value}%`;
+        };
 
-          const update = () => {
-            const { r, g, b } = hexToRgb(col.value);
-            const a = alpha.value / 100;
-            const rgba = `rgba(${r},${g},${b},${a})`;
-            applyStyle(def, rgba);
-            aval.textContent = `${alpha.value}%`;
-          };
+        col.addEventListener('input', update);
+        alpha.addEventListener('input', update);
 
-          col.addEventListener('input', update);
-          alpha.addEventListener('input', update);
+        wrap.append(alpha, aval, col);
+      }
 
-          wrap.append(alpha, aval, col);
-        }
+      group.appendChild(wrap);
+    });
 
-        group.appendChild(wrap);
-      });
-
-      pane.appendChild(group);
-    }
+    if (!usesExistingGroup) pane.appendChild(group);
   }
 }
 
@@ -733,13 +730,34 @@ const elResetAll = document.getElementById("resetAll");
 
 function openSettings() {
   lastFocusedElement = document.activeElement;
+  settingsSessionSnapshot = {
+    settings: localStorage.getItem(SETTINGS_KEY),
+    links: localStorage.getItem(STORAGE_KEY),
+    searchEngine: localStorage.getItem(SEARCH_ENGINE_KEY),
+    legacyMorph: localStorage.getItem('morphSettings')
+  };
   pendingWallpaper = undefined;
   loadSettingsToForm();
   elSettingsPanel.hidden = false;
   elSettingsPanel.querySelector('.tab-button.active')?.focus();
 }
 
+function restoreStorageValue(key, value) {
+  if (value === null) localStorage.removeItem(key);
+  else localStorage.setItem(key, value);
+}
+
+function restoreSettingsSession() {
+  if (!settingsSessionSnapshot) return;
+  restoreStorageValue(SETTINGS_KEY, settingsSessionSnapshot.settings);
+  restoreStorageValue(STORAGE_KEY, settingsSessionSnapshot.links);
+  restoreStorageValue(SEARCH_ENGINE_KEY, settingsSessionSnapshot.searchEngine);
+  restoreStorageValue('morphSettings', settingsSessionSnapshot.legacyMorph);
+  settingsSessionSnapshot = null;
+}
+
 async function cancelSettings() {
+  restoreSettingsSession();
   clearMorphStyles();
   applyStoredSettings();
   pendingWallpaper = undefined;
@@ -1236,7 +1254,7 @@ function importTheme(file) {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(imported));
       localStorage.removeItem(SEARCH_ENGINE_KEY);
       applyStoredSettings();
-      alert("Theme imported and applied!");
+      alert("Theme imported. Choose Save & Close to keep it, or Cancel to restore the previous theme.");
     } catch (err) {
       console.error("Import failed:", err);
       alert("Invalid theme file.");
@@ -1399,7 +1417,7 @@ function importLinks(file) {
       if (Array.isArray(links) && links.length <= 200) {
         saveLinks(links.map(normalizeLink));
         renderGrid();
-        alert("Links imported successfully!");
+        alert("Links imported. Choose Save & Close to keep them, or Cancel to restore the previous links.");
       } else {
         alert("Invalid links format");
       }
@@ -1566,6 +1584,7 @@ async function saveSettings() {
   localStorage.removeItem(SEARCH_ENGINE_KEY);
   localStorage.removeItem('morphSettings');
   applyStoredSettings();
+  settingsSessionSnapshot = null;
   settingsPanel.hidden = true;
   lastFocusedElement?.focus();
 }
@@ -1582,6 +1601,7 @@ async function resetSettings() {
   pendingWallpaper = undefined;
   await restoreSavedWallpaper();
   applyStoredSettings();
+  settingsSessionSnapshot = null;
   settingsPanel.hidden = true;
   lastFocusedElement?.focus();
   alert("Settings have been reset to defaults.");
@@ -1599,6 +1619,7 @@ async function resetAllSettings() {
   }
   clearMorphStyles();
   applyStoredSettings();
+  settingsSessionSnapshot = null;
   settingsPanel.hidden = true;
   lastFocusedElement?.focus();
   alert("All settings have been reset to defaults");

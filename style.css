@@ -520,7 +520,7 @@ details[open]::details-content {
   padding: 10px 12px 10px 34px;
   border-inline-start: 3px solid var(--tab-highlight);
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--tab-highlight) 12%, var(--sg-highlight));
+  background: #ffffff1a;
   color: var(--sg-text);
   font-size: 0.8rem;
   line-height: 1.4;
@@ -785,7 +785,16 @@ details[open]::details-content {
 
 #resetAll,
 #resetSettings {
+  background: var(--sg-highlight);
+  outline-style: inset;
+  outline: 1px solid var(--warn);
+  color: var(--sg-text);
+}
+
+#resetAll:hover,
+#resetSettings:hover {
   background: var(--warn);
+  color: #fff;
 }
 
 /* Inputs */

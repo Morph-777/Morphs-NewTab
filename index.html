@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>New Tab</title>
-  <link rel="stylesheet" href="style.css?v=0.9.20" />
+  <link rel="stylesheet" href="style.css?v=0.9.25" />
   <link rel="icon" href="favicon.png" type="image/png" />
 </head>
 
@@ -132,7 +132,7 @@
             <details class="settings-dropdown">
               <summary>🕒 Clock</summary>
               <div class="settings-dropdown-content">
-                <div class="settings-group">
+                <div class="settings-group morph-controls-host clock-inter">
                   <label>
                     <span>Clock-to-Search Gap (px):</span>
                     <input type="range" id="clockMargin" min="0" max="400" step="1" value="66" />
@@ -144,7 +144,6 @@
                     <span id="clockSizeValue">5</span>
                   </label>
                 </div>
-                <div class="clock-inter"></div>
               </div>
             </details>
 
@@ -172,8 +171,8 @@
             <details class="settings-dropdown">
               <summary>🔳 Link Grid</summary>
               <div class="settings-dropdown-content">
-                <div class="settings-group">
-                  <div>Links outside a smaller grid are hidden, not deleted.</div>
+                <div class="add-info">Type in a number to go above the recommended limit.</div>
+                <div class="settings-group morph-controls-host lg-inter">
                   <div class="input-row">
                     <label for="cols">Columns:</label>
                     <div class="number-input">
@@ -191,7 +190,6 @@
                     </div>
                   </div>
                 </div>
-                <div class="lg-inter"></div>
               </div>
             </details>
           </div>
@@ -216,15 +214,14 @@
             <div class="settings-group settings-group-buttons">
               <button id="exportTheme">Export Theme</button>
               <button id="importTheme">Import Theme</button>
+              <button type="button" id="resetSettings">Reset to Defaults</button>
               <input type="file" id="importThemeFile" accept=".json" hidden />
             </div>
             <h3>Wallpaper</h3>
             <!-- Wallpaper picker -->
             <div class="settings-group">
-              <div>🖼️ <strong>Choose a wallpaper</strong> or remove it using the buttons below.</div>
-              <div>⚠️ <strong>High-resolution wallpapers</strong> can slow down load time when opening a new tab.</div>
-              <div>💡 <em>Tip:</em> Match your wallpaper's main color (e.g. sky or background) to your <strong>background
-                  color</strong> for a smoother look as the page loads.</div>
+              <div>High-resolution wallpapers can slow down load time when opening a new tab.</div>
+              <div>Match your wallpaper's main color (e.g. sky or background) to your background color for a smoother look as the new tab loads.</div>
             </div>
             <div class="settings-group settings-group-buttons">
               <button id="clearWallpaper">Clear Wallpaper</button>
@@ -234,13 +231,13 @@
 
             <h3>Morph Customization</h3>
             <div class="settings-group">
-              Customize colors, borders, outlines, shadows, and blur. Backdrop blur is most visible with a transparent background color.
+              Customize colors, borders, outlines, shadows and blur. Backdrop blur is most visible with a transparent background color and wallpaper.
             </div>
 
             <details class="settings-dropdown">
               <summary>🎨 Background</summary>
               <div class="settings-dropdown-content">
-                <div class="add-info">Use a color similar to your Wallpaper to make loading look smoother.</div>
+                <div class="add-info">Use a color similar to your Wallpaper to make loading a new tab look smoother.</div>
                 <div class="bg-style">
                   <!-- morph controls here… -->
                 </div>
@@ -251,12 +248,11 @@
               <summary>🕒 Clock</summary>
               <div class="settings-dropdown-content">
                 <h4 class="settings-subcategory">Text &amp; Text Shadow</h4>
-                <div class="settings-group">
+                <div class="settings-group morph-controls-host clock-text-style">
                   <label><span>Clock Font:</span>
                     <select id="clockFont"></select>
                   </label>
                 </div>
-                <div class="clock-text-style"></div>
                 <h4 class="settings-subcategory">Background &amp; Shadow</h4>
                 <div class="clock-background-style"></div>
                 <h4 class="settings-subcategory">Shape &amp; Outline</h4>
@@ -319,9 +315,9 @@
           <div id="links-tab" class="tab-content" role="tabpanel" aria-labelledby="linksTab">
             <h3>Link Management</h3>
             <div class="settings-group">
-              <div>Right-click any icon to edit links</div>
-              <div>Drag and drop to rearrange</div>
-              <div>Open links in new tab with middle-mouse-click</div>
+              <div>Left Click to follow link. Right-click any icon to edit links.</div>
+              <div>Open links in new tab with middle-mouse-click.</div>
+              <div>Drag and drop to rearrange.</div>
             </div>
             <div class="settings-group settings-group-buttons">
               <button id="exportLinks">Export Links</button>
@@ -332,7 +328,7 @@
             <h3>Link Behavior</h3>
             <div class="settings-group">
               <label>
-                <div>Middle-click opens in background tab</div>
+                <div>Middle-click opens tab in background</div>
                 <input type="checkbox" id="middleClickBackground" />
               </label>
             </div>
@@ -377,7 +373,6 @@
       <div class="settings-buttons">
         <button type="button" id="saveSettings">Save & Close</button>
         <button type="button" id="cancelSettings">Cancel</button>
-        <button type="button" id="resetSettings">Reset to Defaults</button>
       </div>
     </div>
   </main>
@@ -413,7 +408,7 @@
       </div>
     </div>
   </div>
-  <script src="scripts.js?v=0.9.20" defer></script>
+  <script src="scripts.js?v=0.9.25" defer></script>
 </body>
 
 </html>
