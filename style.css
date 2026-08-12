@@ -406,7 +406,7 @@ body {
   transition: transform 0.08s ease-out, opacity 0.08s linear;
 }
 
-.settings-panel:not([hidden]) {
+.settings-panel.is-open {
   transform: translateX(0);
   opacity: 1;
   pointer-events: all;
@@ -784,7 +784,8 @@ details[open]::details-content {
 }
 
 #resetAll,
-#resetSettings {
+#resetSettings,
+#removeLink {
   background: var(--sg-highlight);
   outline-style: inset;
   outline: 1px solid var(--warn);
@@ -792,7 +793,8 @@ details[open]::details-content {
 }
 
 #resetAll:hover,
-#resetSettings:hover {
+#resetSettings:hover,
+#removeLink:hover {
   background: var(--warn);
   color: #fff;
 }
@@ -855,16 +857,6 @@ select {
 
 .settings-panel input[type="color"]::-webkit-color-swatch-wrapper {
   padding: 0;
-}
-
-#removeLink {
-  background: var(--warn) !important;
-  color: #fff !important;
-}
-
-#removeLink:hover {
-  background: var(--warn) !important;
-  color: #fff !important;
 }
 
 input[type="range"] {
@@ -1004,18 +996,6 @@ input[type="range" i]::-webkit-slider-container {
   padding: 20px 0 0;
   background: transparent;
   border-top: 0;
-}
-
-#linkEditModal .settings-buttons button {
-  flex: 1;
-  background: var(--highlight);
-  color: var(--text);
-}
-
-#linkEditModal .settings-buttons button:hover {
-  background: var(--highlight);
-  color: var(--text);
-  box-shadow: 0 0 0 2px var(--input-glow);
 }
 
 .link-edit-panel:not([hidden]) {

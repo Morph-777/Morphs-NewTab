@@ -727,6 +727,46 @@ const elSaveSettings = document.getElementById("saveSettings");
 const elCancelSettings = document.getElementById("cancelSettings");
 const elResetSettings = document.getElementById("resetSettings");
 const elResetAll = document.getElementById("resetAll");
+let settingsPanelTransitionId = 0;
+
+function isSettingsPanelOpen() {
+  return elSettingsPanel.classList.contains("is-open");
+}
+
+function showSettingsPanel() {
+  settingsPanelTransitionId++;
+  elSettingsPanel.hidden = false;
+  // Flush the closed state before activating the transition.
+  void elSettingsPanel.offsetWidth;
+  elSettingsPanel.classList.add("is-open");
+}
+
+function hideSettingsPanel() {
+  if (elSettingsPanel.hidden) return Promise.resolve();
+  const transitionId = ++settingsPanelTransitionId;
+  elSettingsPanel.classList.remove("is-open");
+
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    elSettingsPanel.hidden = true;
+    return Promise.resolve();
+  }
+
+  return new Promise(resolve => {
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      elSettingsPanel.removeEventListener("transitionend", onTransitionEnd);
+      if (transitionId === settingsPanelTransitionId) elSettingsPanel.hidden = true;
+      resolve();
+    };
+    const onTransitionEnd = event => {
+      if (event.target === elSettingsPanel && event.propertyName === "transform") finish();
+    };
+    elSettingsPanel.addEventListener("transitionend", onTransitionEnd);
+    setTimeout(finish, 150);
+  });
+}
 
 function openSettings() {
   lastFocusedElement = document.activeElement;
@@ -738,7 +778,7 @@ function openSettings() {
   };
   pendingWallpaper = undefined;
   loadSettingsToForm();
-  elSettingsPanel.hidden = false;
+  showSettingsPanel();
   elSettingsPanel.querySelector('.tab-button.active')?.focus();
 }
 
@@ -762,7 +802,7 @@ async function cancelSettings() {
   applyStoredSettings();
   pendingWallpaper = undefined;
   await restoreSavedWallpaper();
-  elSettingsPanel.hidden = true;
+  await hideSettingsPanel();
   lastFocusedElement?.focus();
 }
 
@@ -814,7 +854,7 @@ function setupEventListeners() {
 
   // — FALLBACK CLOCK DBLCLICK —
   document.body.addEventListener("dblclick", () => {
-    if (!elClock.offsetParent && elSettingsPanel.hidden) {
+    if (!elClock.offsetParent && !isSettingsPanelOpen()) {
       openSettings();
     }
   });
@@ -946,7 +986,7 @@ function setupEventListeners() {
         elSearchInput.focus();
       } else if (!linkEditModal.hidden) {
         closeLinkEditModal();
-      } else if (!elSettingsPanel.hidden) {
+      } else if (isSettingsPanelOpen()) {
         cancelSettings();
       }
       return;
@@ -955,11 +995,11 @@ function setupEventListeners() {
       trapFocus(linkEditModal, e);
       return;
     }
-    if (e.key === "Tab" && !elSettingsPanel.hidden) {
+    if (e.key === "Tab" && isSettingsPanelOpen()) {
       trapFocus(elSettingsPanel, e);
       return;
     }
-    if (!linkEditModal.hidden || !elSettingsPanel.hidden) return;
+    if (!linkEditModal.hidden || isSettingsPanelOpen()) return;
     if (suggestionsVisible && ["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) {
       handleSuggestionNavigation(e);
       e.preventDefault();
@@ -1219,7 +1259,7 @@ function applySearchEngine(engine) {
 // ==========================
 
 function exportTheme() {
-  const settings = settingsPanel.hidden ? getSettings() : settingsFromForm();
+  const settings = isSettingsPanelOpen() ? settingsFromForm() : getSettings();
   const fullMorph = {};
   morphDefs.forEach(def => {
     const key = morphKey(def);
@@ -1585,7 +1625,7 @@ async function saveSettings() {
   localStorage.removeItem('morphSettings');
   applyStoredSettings();
   settingsSessionSnapshot = null;
-  settingsPanel.hidden = true;
+  await hideSettingsPanel();
   lastFocusedElement?.focus();
 }
 
@@ -1602,7 +1642,7 @@ async function resetSettings() {
   await restoreSavedWallpaper();
   applyStoredSettings();
   settingsSessionSnapshot = null;
-  settingsPanel.hidden = true;
+  await hideSettingsPanel();
   lastFocusedElement?.focus();
   alert("Settings have been reset to defaults.");
 }
@@ -1620,7 +1660,7 @@ async function resetAllSettings() {
   clearMorphStyles();
   applyStoredSettings();
   settingsSessionSnapshot = null;
-  settingsPanel.hidden = true;
+  await hideSettingsPanel();
   lastFocusedElement?.focus();
   alert("All settings have been reset to defaults");
 }
